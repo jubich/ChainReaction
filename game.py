@@ -3,7 +3,6 @@
 
 # needed by player for visiuals (game + menu)
 
-import numpy as np
 import pygame
 
 class Gameboard():
@@ -113,23 +112,3 @@ class Gameboard():
                               (1*circle_radius))
                     pygame.draw.circle(self.window, player_color, center,
                                        circle_radius)
-
-if __name__ == "__main__":
-    # board test
-    g = Gameboard(5, 5, 1)
-    g.calc_box_size(g.width_min, g.height_min)
-    g.meshing(g.width_min, g.height_min)
-    g.draw_mesh((255,255,255))
-
-    player_pos = np.array([[1, 2, 3, 0, 3],
-                           [2, 2, 2, 2, 3],
-                           [1, 1, 1, 1, 3],
-                           [3, 3, 3, 3, 3],
-                           [2, 3, 1, 2, 3]])
-    while True:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-            elif event.type == pygame.VIDEORESIZE:
-                g.rescale_window(event.w, event.h, player_pos, (255,255,255))
-        pygame.display.update()
