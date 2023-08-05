@@ -4,6 +4,7 @@
 # Deals with game calculations.
 
 
+import time
 import numpy as np
 
 class Gamecalc():
@@ -12,17 +13,20 @@ class Gamecalc():
         self.width_num = int(width_num)
         self.height_num = int(height_num)
         self.network = network
-        self.create_boards()
+        self._counter = 0
+        self._create_boards()
 
-    def create_boards(self):
+    def _create_boards(self):
         self.player_pos = {}
         self.substract_board = {}
+        self.player_alive = {}
         for num in range(self.player_num):
             self.player_pos[num] = np.zeros((self.height_num, self.width_num), dtype=int)
             self.substract_board[num] = np.zeros((self.height_num, self.width_num), dtype=int)
+            self.player_alive[num] = True
         self.chain_board = np.zeros((self.height_num, self.width_num), dtype=int)
 
-    def update_player(self, player, pos_l, num_l):
+    def update_player(self, player, pos_l, num_l, connections):
         # pos + num as list
         chain_reaction = []
         for pos, num in zip(pos_l, num_l):
@@ -34,22 +38,20 @@ class Gamecalc():
             if (column == 0) or (column == self.width_num-1):
                 max_num -= 1
             if self.player_pos[player][row][column] >= max_num:
-                self.update_chain_board(row, column)
+                self._update_chain_board(row, column)
                 chain_reaction.append(pos)
-        # still missing!!!send boards
-        # print("player",self.player_pos)
-        # print("chain",self.chain_board)
-        # print("sub",self.substract_board)
+        for connection in connections:
+            self.network.send(connection, self.player_pos)
         if chain_reaction:
+            time.sleep(0.5)
             for pos in chain_reaction:
                 row, column = pos
                 self.player_pos[player][row][column] = 0
-            self.clear_substract_board()
-            self.clear_chain_board(player)
-            return True
-        return False
+            self._clear_substract_board()
+            self._clear_chain_board(player, connections)
+            self._check_elimination()
 
-    def update_chain_board(self, row, column):
+    def _update_chain_board(self, row, column):
         try:
             self.chain_board[row+1][column] += 1 + self.get_pos(row+1, column, True, False)
         except IndexError:
@@ -79,12 +81,12 @@ class Gamecalc():
             return pos_val, num
         return pos_val
 
-    def clear_substract_board(self):
+    def _clear_substract_board(self):
         for num in range(self.player_num):
             self.player_pos[num] -= self.substract_board[num]
             self.substract_board[num] = np.zeros((self.height_num, self.width_num), dtype=int)
 
-    def clear_chain_board(self, player):
+    def _clear_chain_board(self, player, connections):
         pos_l = []
         num_l = []
         for num_r, row in enumerate(self.chain_board):
@@ -93,82 +95,56 @@ class Gamecalc():
                     pos_l.append((num_r, num_c))
                     num_l.append(column)
         self.chain_board = np.zeros((self.height_num, self.width_num), dtype=int)
-        self.update_player(player, pos_l, num_l)
+        self.update_player(player, pos_l, num_l, connections)
 
-    def check_elimination(self):
-        eliminated = []
+    def _check_elimination(self):
         for num in range(self.player_num):
             sum_p = np.sum(self.player_pos[num])
             if sum_p == 0:
+                self.player_alive[num] = False
+
+    def get_eliminated(self):
+        eliminated = []
+        for num in range(self.player_num):
+            if not self.player_alive[num]:
                 eliminated.append(num)
         return eliminated
 
+    def get_alive(self):
+        alive = []
+        for num in range(self.player_num):
+            if self.player_alive[num]:
+                alive.append(num)
+        return alive
 
+    def set_eliminated(self, player):
+        self.player_alive[player] = False
 
-# g = Gamecalc(3, 3, 3, None)
-# g.player_pos[0] = np.array([[1, 0, 0],
-#                             [0, 0, 0],
-#                             [0, 0, 0]], dtype=int)
-# g.player_pos[1] = np.array([[0, 2, 0],
-#                             [2, 0, 0],
-#                             [0, 0, 0]], dtype=int)
-# g.player_pos[2] = np.array([[0, 0, 0],
-#                             [0, 2, 0],
-#                             [0, 0, 0]], dtype=int)
+    def player_to_move(self):
+        for num in range(self.player_num):
+            # to be safe we can exit the while loop
+            if self.player_alive[num]:
+                player_move = self._counter % self.player_num
+                while not self.player_alive[player_move]:
+                    self._counter += 1
+                    player_move = self._counter % self.player_num
+                return player_move
+        return None
 
-# pos_l = [(0,0)]
-# num_l = [1]
-# g.update_player(0, pos_l, num_l)
-# print("final pos",g.player_pos)
-# print("eliminated",g.check_elimination())
+    def player_next_to_move(self):
+        # that way player next to move is alway the one after play_to_move()
+        _ = self.player_to_move()
+        for num in range(self.player_num):
+            # to be safe we can exit the while loop
+            if self.player_alive[num]:
+                offset = 1
+                player_move = (self._counter + offset) % self.player_num
+                while not self.player_alive[player_move]:
+                    offset += 1
+                    player_move = (self._counter + offset) % self.player_num
+                return player_move
+        return None
 
-# g = Gamecalc(3, 3, 3, None)
-# g.player_pos[1] = np.array([[1, 0, 0],
-#                             [0, 0, 0],
-#                             [0, 0, 0]], dtype=int)
-# g.player_pos[2] = np.array([[0, 2, 0],
-#                             [2, 0, 0],
-#                             [0, 0, 0]], dtype=int)
-# g.player_pos[0] = np.array([[0, 0, 0],
-#                             [0, 2, 0],
-#                             [0, 0, 0]], dtype=int)
-
-# pos_l = [(0,0)]
-# num_l = [1]
-# g.update_player(1, pos_l, num_l)
-# print("final pos",g.player_pos)
-# print("eliminated",g.check_elimination())
-
-# g = Gamecalc(3, 3, 3, None)
-# g.player_pos[2] = np.array([[1, 0, 0],
-#                             [0, 0, 0],
-#                             [0, 0, 0]], dtype=int)
-# g.player_pos[0] = np.array([[0, 2, 0],
-#                             [2, 0, 0],
-#                             [0, 0, 0]], dtype=int)
-# g.player_pos[1] = np.array([[0, 0, 0],
-#                             [0, 2, 0],
-#                             [0, 0, 0]], dtype=int)
-
-# pos_l = [(0,0)]
-# num_l = [1]
-# g.update_player(2, pos_l, num_l)
-# print("final pos",g.player_pos)
-# print("eliminated",g.check_elimination())
-
-# g = Gamecalc(3, 3, 3, None)
-# g.player_pos[0] = np.array([[0, 0, 0],
-#                             [0, 0, 0],
-#                             [0, 0, 1]], dtype=int)
-# g.player_pos[1] = np.array([[0, 0, 0],
-#                             [0, 0, 2],
-#                             [0, 2, 0]], dtype=int)
-# g.player_pos[2] = np.array([[0, 0, 0],
-#                             [0, 2, 0],
-#                             [0, 0, 0]], dtype=int)
-
-# pos_l = [(2,2)]
-# num_l = [1]
-# g.update_player(0, pos_l, num_l)
-# print("final pos",g.player_pos)
-# print("eliminated",g.check_elimination())
+    def increase_counter(self):
+        # "aka next round/player"
+        self._counter += 1
