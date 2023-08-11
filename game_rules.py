@@ -52,6 +52,7 @@ class Gamecalc():
                 self.player_pos[player][row][column] = 0
             self._clear_substract_board()
             self._clear_chain_board(player, connections)
+            self._check_elimination()
 
     def _update_chain_board(self, row, column):
         try:

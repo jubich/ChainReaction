@@ -9,10 +9,8 @@
 import socket
 import select
 from network import Network_s
-from player import Player
 from game_rules import Gamecalc
-import pickle
-import sys
+
 
 ip = socket.gethostbyname(socket.gethostname())
 port = 5555
@@ -61,8 +59,9 @@ while run:
             if msg == "":
                 continue
             elif msg == "ByeBye":
-                print(f"player left {player[read]}")
-                game.set_eliminated(player[conn])
+                print(f"player {player.get(read, 'viewer')} left")
+                if player.get(read, 'viewer') != "viewer":
+                    game.set_eliminated(player[conn])
                 errored.append(read)
             else:
                 if player.get(read, "viewer") == game.player_to_move():
@@ -85,5 +84,8 @@ while run:
         round_num += 1
 
     for error in errored:
+        if player.get(error, 'viewer') == "viewer":
+            print(f"Closed conncetion to player 'viewer' at {error}")
+        else:
+            print(f"Closed conncetion to player {player[error]} at {player[player[error]]}")
         server.close_connection(error)
-        print(f"Closed conncetion to player {player[error]} at {player[player[error]]}")
