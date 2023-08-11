@@ -8,7 +8,7 @@ import pygame
 
 class Gameboard():
     def __init__(self, width_num, height_num, player_num):
-        self.inside = 10        # min size of box inside
+        self.inside = 60        # min size of box inside
         self.line_width = 3     # width of box seperator
         self.player_num = int(player_num)
         self.board_color = (0, 0, 0)

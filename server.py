@@ -61,7 +61,9 @@ while run:
             elif msg == "ByeBye":
                 print(f"player {player.get(read, 'viewer')} left")
                 if player.get(read, 'viewer') != "viewer":
-                    game.set_eliminated(player[conn])
+                    game.set_eliminated(player[read])
+                    for write in writable:
+                        server.send(write, f"next player: {game.player_to_move()}")
                 errored.append(read)
             else:
                 if player.get(read, "viewer") == game.player_to_move():
