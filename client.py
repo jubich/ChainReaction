@@ -45,8 +45,17 @@ def main():
             msg = network.recieve()
             if isinstance(msg, dict):
                 player_pos = msg
-            elif isinstance(msg, int):
-                player_turn_num = msg
+                print("got player_pos")
+            elif isinstance(msg, str):
+                if "next player:" in msg:
+                    print("got next player")
+                    player_turn_num = int(msg.split("next player:")[1])
+                if "your number:" in msg:
+                    your_number = int(msg.split("your number:")[1])
+                    pygame.display.set_caption(f"Player {your_number}")
+                if msg == "viewer":
+                    pygame.display.set_caption("Viewer")
+
             elif msg == "":
                 print("empty")
             else:

@@ -43,13 +43,15 @@ class Gamecalc():
         for connection in connections:
             self.network.send(connection, self.player_pos)
         if chain_reaction:
+            if len(self.get_alive()) == 1:
+                print("break chain")
+                return
             time.sleep(0.5)
             for pos in chain_reaction:
                 row, column = pos
                 self.player_pos[player][row][column] = 0
             self._clear_substract_board()
             self._clear_chain_board(player, connections)
-            self._check_elimination()
 
     def _update_chain_board(self, row, column):
         try:
@@ -104,6 +106,7 @@ class Gamecalc():
                 self.player_alive[num] = False
 
     def get_eliminated(self):
+        self._check_elimination()
         eliminated = []
         for num in range(self.player_num):
             if not self.player_alive[num]:
@@ -111,6 +114,7 @@ class Gamecalc():
         return eliminated
 
     def get_alive(self):
+        self._check_elimination()
         alive = []
         for num in range(self.player_num):
             if self.player_alive[num]:

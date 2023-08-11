@@ -50,8 +50,11 @@ while run:
             if len(player_num_list) != 0:
                 player[player_num_list[0]] = {"conn": conn, "addr": addr}
                 player[conn] = player_num_list[0]
+                server.send(conn, f"your number: {player_num_list[0]}")
                 print(f"player got number {player_num_list[0]}")
                 player_num_list.pop(0)
+            else:
+                server.send(conn, "viewer")
 
         else:
             msg = server.recieve(read)
@@ -62,7 +65,7 @@ while run:
                 game.set_eliminated(player[conn])
                 errored.append(read)
             else:
-                if player[read] == game.player_to_move():
+                if player.get(read, "viewer") == game.player_to_move():
                     row, column = msg
                     pos_val, pos_player = game.get_pos(row, column, False, True)
                     if (pos_player == game.player_to_move()) or (pos_val == 0):
@@ -77,7 +80,7 @@ while run:
         game.update_player(game.player_to_move(), pos_l, [1], writable)
         pos_l = []
         for write in writable:
-            server.send(write, game.player_next_to_move())
+            server.send(write, f"next player: {game.player_next_to_move()}")
         game.increase_counter()
         round_num += 1
 
