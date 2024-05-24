@@ -6,32 +6,37 @@
 # sends player_arrays
 
 
+import sys
+import time
 import socket
 import select
+
 from network import Network_s
 from game_rules import Gamecalc
+from server_gui import server_gui
 
 
-ip = socket.gethostbyname(socket.gethostname())
-port = 5555
+s_gui = server_gui(player_num=3, width=3, height=3,
+                   ip=socket.gethostbyname(socket.gethostname()), port=5555)
 
-server = Network_s(ip, port)
+s_inputs = s_gui.get_inputs()
+
+server = Network_s(s_inputs["ip"], s_inputs["port"])
 
 if not server.bind_address(2):
-    print("Faild to bind server on", ip, port)
+    print("Faild to bind server on", s_inputs["ip"], s_inputs["port"])
+    time.sleep(2)
+    sys.exit()
 print("bound succesfull")
 
 server.setblocking(False)
 
 run = True
 
-PLAYER_NUM = 3
-WIDTH_NUM = 3
-HEIGHT_NUM = 3
+game = Gamecalc(s_inputs["player_num"], s_inputs["width"], s_inputs["height"],
+                server)
 
-game = Gamecalc(PLAYER_NUM, WIDTH_NUM, HEIGHT_NUM, server)
-
-player_num_list = [num for num in range(PLAYER_NUM)]
+player_num_list = [*range(s_inputs["player_num"])]
 
 player = {}
 round_num = 0
