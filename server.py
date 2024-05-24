@@ -53,24 +53,25 @@ while run:
             if len(player_num_list) != 0:
                 player[player_num_list[0]] = {"conn": conn, "addr": addr}
                 player[conn] = player_num_list[0]
-                server.send(conn, f"your number: {player_num_list[0]}")
+                server.send(conn, ("your number", player_num_list[0]))
                 print(f"player got number {player_num_list[0]}")
                 player_num_list.pop(0)
             else:
-                server.send(conn, "viewer")
+                server.send(conn, ("viewer", None))
 
         else:
             msg = server.recieve(read)
-            if msg == "":
+            if msg[0] is None:
                 continue
-            elif msg == "ByeBye":
+            elif msg[0] == "ByeBye":
                 print(f"player {player.get(read, 'viewer')} left")
                 if player.get(read, 'viewer') != "viewer":
                     game.set_eliminated(player[read])
                     for write in writable:
-                        server.send(write, f"next player: {game.player_to_move()}")
+                        server.send(write, ("next player", game.player_to_move()))
                 errored.append(read)
-            else:
+            elif msg[0] == "position":
+                msg = msg[1]
                 if player.get(read, "viewer") == game.player_to_move():
                     row, column = msg
                     pos_val, pos_player = game.get_pos(row, column, False, True)
@@ -80,13 +81,17 @@ while run:
                         pos_l = []
                 else:
                     pos_l = []
-                msg = ""
+                msg = (None, None)
+            else:
+                print(f"Unkown message: {msg}")
+                msg = (None, None)
+
     if pos_l:
         print(f"Round {round_num} with player {game.player_to_move()} and move {pos_l}")
         game.update_player(game.player_to_move(), pos_l, [1], writable)
         pos_l = []
         for write in writable:
-            server.send(write, f"next player: {game.player_next_to_move()}")
+            server.send(write, ("next player", game.player_next_to_move()))
         game.increase_counter()
         round_num += 1
 

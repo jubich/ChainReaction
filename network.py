@@ -36,7 +36,7 @@ class Network_c:
         if msg != "":
             msg_len = int(msg)
             return pickle.loads(self.client.recv(msg_len))
-        return ""
+        return (None, None)
 
     def close(self):
         self.client.close()
@@ -78,7 +78,7 @@ class Network_s:
         if msg != "":
             msg_len = int(msg)
             return pickle.loads(connection.recv(msg_len))
-        return ""
+        return (None, None)
 
     def close_connection(self, connection):
         self.connections.remove(connection)

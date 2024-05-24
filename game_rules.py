@@ -41,7 +41,7 @@ class Gamecalc():
                 self._update_chain_board(row, column)
                 chain_reaction.append(pos)
         for connection in connections:
-            self.network.send(connection, self.player_pos)
+            self.network.send(connection, ("positions", self.player_pos))
         if chain_reaction:
             if len(self.get_alive()) == 1:
                 print("break chain")

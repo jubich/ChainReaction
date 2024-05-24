@@ -135,32 +135,6 @@ class Gameboard():
         color_l = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0),
                    (255, 0, 255), (0, 255, 255)]
         color_len = len(color_l)
+        if player_num is None:
+            return (0, 0, 0)
         return color_l[player_num % color_len]
-
-
-if __name__ == "__main__":
-    # board test
-    import numpy as np
-    g = Gameboard(5, 5, 2)
-    player_pos = {1:np.array([[0, 0, 0, 0, 0],
-                              [0, 0, 0, 0, 0],
-                              [0, 0, 0, 0, 0],
-                              [0, 0, 0, 0, 0],
-                              [0, 0, 0, 0, 3]]),
-                  0:np.array([[4, 2, 3, 0, 3],
-                              [2, 2, 2, 2, 3],
-                              [1, 1, 4, 1, 3],
-                              [3, 3, 3, 3, 0],
-                              [2, 3, 1, 2, 0]])}
-
-    ii = 0
-    while True:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-            if event.type == pygame.VIDEORESIZE:
-                g.rescale_window(event.w, event.h, player_pos, ii)
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                ii += 1
-                g.update_window(player_pos, ii)
-        pygame.display.update()
