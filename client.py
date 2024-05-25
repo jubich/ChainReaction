@@ -17,29 +17,38 @@ from player import Player
 from game import Gameboard
 from client_gui import client_gui
 
+
+# get user inputs via gui
+
 c_gui = client_gui(nickname="user",
                    ip=socket.gethostbyname(socket.gethostname()), port=5555)
 
 c_inputs = c_gui.get_inputs()
 
 
-PLAYER_NUM = 3
-WIDTH_NUM = 3
-HEIGHT_NUM = 3
+# initial handshake
 
+network = Network_c(c_inputs["ip"], c_inputs["port"])
+if not network.connect():
+    print("Connection failed")
+    time.sleep(2)
+    sys.exit()
+network.setblocking(False)
+
+handshake_infos = network.handshake(c_inputs["nickname"])
+print("Handshake done!")
+PLAYER_NUM = handshake_infos["player_num"]
+WIDTH_NUM = handshake_infos["width"]
+HEIGHT_NUM = handshake_infos["height"]
+
+# start game
 
 player_turn_num = 0
 player_pos = {}
 for num in range(PLAYER_NUM):
     player_pos[num] = np.zeros((HEIGHT_NUM, WIDTH_NUM), dtype=int)
 run = True
-network = Network_c(c_inputs["ip"], c_inputs["port"])
-if not network.connect():
-    print("fail")
-    time.sleep(2)
-    sys.exit()
 
-network.setblocking(False)
 gameboard = Gameboard(WIDTH_NUM, HEIGHT_NUM, PLAYER_NUM)
 player = Player(gameboard)
 
@@ -61,6 +70,7 @@ while run:
             player_turn_num = msg[1]
         elif msg[0] == "your number":
             your_number = msg[1]
+            print(f"my number: {your_number}")
             pygame.display.set_caption(f"Player {your_number}")
         elif msg[0] == "viewer":
             pygame.display.set_caption("Viewer")

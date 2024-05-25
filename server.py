@@ -15,30 +15,34 @@ from network import Network_s
 from game_rules import Gamecalc
 from server_gui import server_gui
 
+# get user inputs via gui
 
 s_gui = server_gui(player_num=3, width=3, height=3,
                    ip=socket.gethostbyname(socket.gethostname()), port=5555)
 
 s_inputs = s_gui.get_inputs()
 
+# initial handshake
+
 server = Network_s(s_inputs["ip"], s_inputs["port"])
 
 if not server.bind_address(2):
-    print("Faild to bind server on", s_inputs["ip"], s_inputs["port"])
+    print("Failed to bind server on", s_inputs["ip"], s_inputs["port"])
     time.sleep(2)
     sys.exit()
-print("bound succesfull")
-
+print("Bound succesfull!")
 server.setblocking(False)
+
+nicknames, player, _, handshake_dict = server.handshake(s_inputs)
+print("Handshake done!")
+
+# start game
 
 run = True
 
 game = Gamecalc(s_inputs["player_num"], s_inputs["width"], s_inputs["height"],
                 server)
 
-player_num_list = [*range(s_inputs["player_num"])]
-
-player = {}
 round_num = 0
 pos_l = []
 while run:
@@ -50,14 +54,8 @@ while run:
         if read == server.server:
             conn, addr = server.accept_connection(False)
             print(f"New connection to {conn}, {addr}")
-            if len(player_num_list) != 0:
-                player[player_num_list[0]] = {"conn": conn, "addr": addr}
-                player[conn] = player_num_list[0]
-                server.send(conn, ("your number", player_num_list[0]))
-                print(f"player got number {player_num_list[0]}")
-                player_num_list.pop(0)
-            else:
-                server.send(conn, ("viewer", None))
+            server.send(conn, ("handshake", handshake_dict))
+            server.send(conn, ("viewer", None))
 
         else:
             msg = server.recieve(read)
