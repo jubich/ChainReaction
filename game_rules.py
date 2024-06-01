@@ -39,7 +39,7 @@ class Gamecalc():
                 max_num -= 1
             if self.player_pos[player][row][column] >= max_num:
                 self._update_chain_board(row, column)
-                chain_reaction.append(pos)
+                chain_reaction.append((pos, max_num))
         for connection in connections:
             self.network.send(connection, ("positions", self.player_pos))
         if chain_reaction:
@@ -47,9 +47,10 @@ class Gamecalc():
                 print("break chain")
                 return
             time.sleep(0.5)
-            for pos in chain_reaction:
+            for item in chain_reaction:
+                pos, max_num = item
                 row, column = pos
-                self.player_pos[player][row][column] = 0
+                self.player_pos[player][row][column] -= max_num
             self._clear_substract_board()
             self._clear_chain_board(player, connections)
             self._check_elimination()
