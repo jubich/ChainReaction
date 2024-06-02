@@ -40,8 +40,9 @@ class Gamecalc():
             if self.player_pos[player][row][column] >= max_num:
                 self._update_chain_board(row, column)
                 chain_reaction.append((pos, max_num))
-        for connection in connections:
-            self.network.send(connection, ("positions", self.player_pos))
+        if connections is not None:
+            for connection in connections:
+                self.network.send(connection, ("positions", self.player_pos))
         if chain_reaction:
             if len(self.get_alive()) == 1:
                 print("break chain")
