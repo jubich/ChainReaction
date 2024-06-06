@@ -17,7 +17,7 @@ from server_gui import server_gui
 
 # get user inputs via gui
 
-s_gui = server_gui(player_num=3, width=3, height=3,
+s_gui = server_gui(player_num=3, width=5, height=5,
                    ip=socket.gethostbyname(socket.gethostname()), port=5555)
 
 s_inputs = s_gui.get_inputs()
@@ -66,7 +66,8 @@ while run:
                 if player.get(read, 'viewer') != "viewer":
                     game.set_eliminated(player[read])
                     for write in writable:
-                        server.send(write, ("next player", game.player_to_move()))
+                        server.send(write, ("next player", (game.player_to_move(),
+                                                            round_num)))
                 errored.append(read)
             elif msg[0] == "position":
                 msg = msg[1]
@@ -88,14 +89,14 @@ while run:
         print(f"Round {round_num} with player {game.player_to_move()} and move {pos_l}")
         game.update_player(game.player_to_move(), pos_l, [1], writable)
         pos_l = []
-        for write in writable:
-            server.send(write, ("next player", game.player_next_to_move()))
-        game.increase_counter()
         round_num += 1
+        for write in writable:
+            server.send(write, ("next player", (game.player_next_to_move(), round_num)))
+        game.increase_counter()
 
     for error in errored:
         if player.get(error, 'viewer') == "viewer":
             print(f"Closed conncetion to player 'viewer' at {error}")
         else:
-            print(f"Closed conncetion to player {player[error]} at {player[player[error]]}")
+            print(f"Closed conncetion to player {player[error]}")
         server.close_connection(error)

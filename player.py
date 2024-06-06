@@ -16,6 +16,8 @@ class Player():
         self.gameboard = gameboard
 
     def mouse_pos(self, mouse_x, mouse_y):
+        column = None
+        row = None
         for num_r in range(self.gameboard.height_num):
             if mouse_y <= self.gameboard.h_lines[num_r][1]:
                 row = num_r

@@ -4,7 +4,7 @@
 import sys
 
 import tkinter as tk
-
+import numpy as np
 
 class client_gui():
     def __init__(self, nickname=None, ip=None, port=None):
@@ -65,6 +65,39 @@ class client_gui():
         entry.insert(0, txt)
 
 
+class client_quit_gui():
+    def __init__(self):
+
+        self._window = tk.Tk()
+        self._window.title('Quit')
+        self._window.protocol("WM_DELETE_WINDOW", self._close_window)
+
+        row = 0
+        tk.Label(self._window, text="Do you really want to quit?").grid(row=row, column=0)
+
+        row += 1
+        tk.Button(self._window, text='Yes', command=self._do_quit).grid(row=row, column=0)
+        tk.Button(self._window, text='No', command=self._not_quit).grid(row=row, column=1)
+
+        self._window.mainloop()
+
+    def _close_window(self):
+        self._window.destroy()
+
+    def _not_quit(self):
+        self.quit = False
+        self._window.destroy()
+
+    def _do_quit(self):
+        self.quit = True
+        self._window.destroy()
+
+    def get_input(self):
+        return self.quit
+
 if __name__ == "__main__":
-    c_gui = client_gui()
-    c_inputs = c_gui.get_inputs()
+    pass
+    # c_gui = client_gui()
+    # c_inputs = c_gui.get_inputs()
+    # quit_gui = client_quit_gui()
+    # print(quit_gui.quit())

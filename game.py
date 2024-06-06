@@ -4,6 +4,7 @@
 # needed by player for visiuals (game + menu)
 
 
+import numpy as np
 import pygame
 
 class Gameboard():
@@ -16,11 +17,14 @@ class Gameboard():
         self.height_num = int(height_num)
         self.width_min = width_num * self.inside + (height_num-1) * self.line_width
         self.height_min = height_num * self.inside + (height_num-1) * self.line_width
+        self.curr_board_h = self.height_min
+        self.curr_board_w = self.width_min
         self.window = self._create_window()
         self._first_setup()
 
     def _create_window(self):
-        window = pygame.display.set_mode((self.width_min, self.height_min),
+        window = pygame.display.set_mode((self.width_min + 50 + 300 + 50,
+                                          self.height_min),
                                          pygame.RESIZABLE)
         pygame.display.set_caption("Client")
         window.fill(self.board_color)
@@ -70,7 +74,8 @@ class Gameboard():
         for line in lines:
             pygame.draw.rect(self.window, color, line)
 
-    def rescale_window(self, new_width, new_height, player_pos, player_turn_num):
+    def rescale_window(self, new_width, new_height, player_pos, player_turn_num,
+                       nicknames, curr_round):
         if new_width >= self.width_min:
             width = new_width
         else:
@@ -81,19 +86,25 @@ class Gameboard():
             height = self.height_min
         self._calc_box_size(width, height)
         board_width, board_height = self._calc_window_size()
-        self.window = pygame.display.set_mode((board_width, board_height),
+        self.curr_board_h = board_height
+        self.curr_board_w = board_width
+        self.window = pygame.display.set_mode((self.curr_board_w + 50 + 300 + 50,
+                                               self.curr_board_h),
                                               pygame.RESIZABLE)
         self.window.fill(self.board_color)
         self._meshing(board_width, board_height)
-        self.update_window(player_pos, player_turn_num)
+        self.update_window(player_pos, player_turn_num, nicknames, curr_round)
 
-    def update_window(self, player_pos, player_turn_num):
+    def update_window(self, player_pos, player_turn_num, nicknames, curr_round):
         self.window.fill(self.board_color)
         for num in range(self.player_num):
             player_board = player_pos[num]
             player_color = self._get_player_color(num)
             self._draw_circle(player_board, self._get_player_color(num))
         self._draw_mesh(self._get_player_color(player_turn_num))
+        self._write_infos(player_pos, nicknames, curr_round,
+                          nicknames[player_turn_num])
+        self._draw_bar(player_pos, nicknames)
 
     def _draw_circle(self, player_pos, player_color):
         circle_radius = self.box_size // 4
@@ -132,9 +143,114 @@ class Gameboard():
                                        circle_radius)
 
     def _get_player_color(self, player_num):
-        color_l = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0),
-                   (255, 0, 255), (0, 255, 255)]
+        color_l = [(255, 0, 0), (0, 255, 0), (0, 0, 255),
+                   (255, 0, 255), (0, 255, 255), (102, 102,0),
+                   (255, 178, 102), (51, 102, 0), (204, 0, 102)]
         color_len = len(color_l)
         if player_num is None:
             return (0, 0, 0)
         return color_l[player_num % color_len]
+
+    def _draw_bar(self, player_pos, nicknames):
+        total_count = 0
+        for value in player_pos.values():
+            total_count += np.sum(value)
+
+        if total_count != 0:
+            height_per_sphere = self.curr_board_h / total_count
+        else:
+            height_per_sphere = 0
+
+        last_height = 0
+        for key, item in player_pos.items():
+            count = np.sum(item)
+            color = self._get_player_color(key)
+            # left, top, width, height
+            curr_height = round(height_per_sphere * count)
+            rect = (self.curr_board_w + 90, last_height, 300, curr_height)
+            font_size = self.get_value_in_range(6, 24, round(curr_height))
+            font = pygame.font.SysFont('Arial', font_size)
+            text_surface = font.render(f'{count} : {nicknames[key]}', False, (255, 255, 255))
+            pygame.draw.rect(self.window, color, rect)
+            self.window.blit(text_surface, (round(self.curr_board_w + 50+150-text_surface.get_width()/2),
+                                            round(last_height + curr_height/2
+                                                  -text_surface.get_height()/2)))
+            last_height += curr_height
+
+    def _write_infos(self, player_pos, nicknames, curr_round, next_pl):
+        font = pygame.font.SysFont('Arial', 24)
+        h_pos = 10
+        text_surface = font.render('Total:', False, (255, 255, 255))
+        self.window.blit(text_surface, (self.curr_board_w + 10, h_pos))
+        total_count = 0
+        for value in player_pos.values():
+            total_count += np.sum(value)
+        h_pos += 34
+        text_surface = font.render(f'{total_count}', False, (255, 255, 255))
+        self.window.blit(text_surface, (self.curr_board_w + 10, h_pos))
+        h_pos += 34
+        text_surface = font.render('Round:', False, (255, 255, 255))
+        self.window.blit(text_surface, (self.curr_board_w + 10, h_pos))
+        total_count = 0
+        for value in player_pos.values():
+            total_count += np.sum(value)
+        h_pos += 34
+        text_surface = font.render(f'{curr_round}', False, (255, 255, 255))
+        self.window.blit(text_surface, (self.curr_board_w + 10, h_pos))
+        h_pos += 34
+        text_surface = font.render('Next:', False, (255, 255, 255))
+        self.window.blit(text_surface, (self.curr_board_w + 10, h_pos))
+        total_count = 0
+        for value in player_pos.values():
+            total_count += np.sum(value)
+        h_pos += 34
+        text_surface = font.render(f'{next_pl}', False, (255, 255, 255))
+        self.window.blit(text_surface, (self.curr_board_w + 10, h_pos))
+
+    @staticmethod
+    def get_value_in_range(min_v, max_v, value):
+        if value < min_v:
+            return min_v
+        if value > max_v:
+            return max_v
+        return value
+
+
+if __name__ == '__main__':
+    # board test
+    pygame.init()
+    g = Gameboard(5, 5, 3)
+    nicknames = {0:"hans", 1:"peter", 2:"hp"}
+    player_pos = {1:np.array([[0, 0, 0, 0, 0],
+                              [0, 0, 0, 0, 0],
+                              [0, 0, 2, 0, 0],
+                              [0, 0, 0, 0, 0],
+                              [0, 0, 0, 0, 0]]),
+                  2:np.array([[0, 0, 0, 0, 0],
+                              [0, 0, 0, 3, 0],
+                              [0, 0, 0, 0, 0],
+                              [0, 0, 0, 0, 0],
+                              [0, 0, 0, 0, 0]]),
+                  0:np.array([[0, 0, 0, 0, 1],
+                              [0, 0, 0, 0, 0],
+                              [0, 0, 0, 0, 0],
+                              [0, 0, 0, 0, 0],
+                              [0, 0, 0, 0, 0]])}
+    g._draw_bar(player_pos, nicknames)
+    g._write_infos(player_pos, nicknames, 5, nicknames[0])
+    clock = pygame.time.Clock()
+    ii = 0
+    while True:
+        clock.tick(60)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+            if event.type == pygame.VIDEORESIZE:
+                g.rescale_window(event.w, event.h, player_pos, ii, nicknames, ii)
+                g.width = event.w
+                g.height = event.h
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                ii += 1
+                g.update_window(player_pos, ii, nicknames, ii)
+        pygame.display.update()
+    pygame.quit()
