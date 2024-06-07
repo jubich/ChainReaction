@@ -6,6 +6,7 @@ import sys
 import tkinter as tk
 import numpy as np
 
+
 class client_gui():
     def __init__(self, nickname=None, ip=None, port=None):
         self._nickname = nickname
@@ -65,6 +66,45 @@ class client_gui():
         entry.insert(0, txt)
 
 
+class client_gui_restart():
+    def __init__(self, nickname=None):
+        self._nickname = nickname
+
+        self._window = tk.Tk()
+        self._window.title('Client GUI')
+        self._window.protocol("WM_DELETE_WINDOW", self._close_window)
+
+        row = 0
+        tk.Label(self._window, text="Nickname:").grid(row=row, column=0)
+        self._nickname_box = tk.Entry(self._window)
+        self._nickname_box.grid(row=row, column=1)
+        if self._nickname is not None:
+            self.write_entry_txt(self._nickname_box, self._nickname)
+
+        row += 1
+        tk.Button(self._window, text='Continue', command=self._continue).grid(row=row, column=1)
+
+        self._window.mainloop()
+
+    def _close_window(self):
+        self._window.destroy()
+        sys.exit()
+
+    def _continue(self):
+        self._nickname = self._nickname_box.get()
+        self._window.destroy()
+
+    def get_inputs(self):
+        inputs = {}
+        inputs["nickname"] = self._nickname
+        return inputs
+
+    @staticmethod
+    def write_entry_txt(entry, txt):
+        entry.delete(0, tk.END)
+        entry.insert(0, txt)
+
+
 class client_quit_gui():
     def __init__(self):
 
@@ -94,6 +134,7 @@ class client_quit_gui():
 
     def get_input(self):
         return self.quit
+
 
 if __name__ == "__main__":
     pass

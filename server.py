@@ -13,7 +13,7 @@ import select
 
 from network import Network_s
 from game_rules import Gamecalc
-from server_gui import server_gui
+from server_gui import server_gui, server_gui_restart
 
 # get user inputs via gui
 
@@ -33,70 +33,93 @@ if not server.bind_address(2):
 print("Bound succesfull!")
 server.setblocking(False)
 
-nicknames, player, _, handshake_dict = server.handshake(s_inputs)
-print("Handshake done!")
+restart = True
 
-# start game
+while restart:
+    # restart loop
 
-run = True
+    nicknames, player, _, handshake_dict = server.handshake(s_inputs)
+    print("Handshake done!")
 
-game = Gamecalc(s_inputs["player_num"], s_inputs["width"], s_inputs["height"],
-                server)
+    # start game
 
-round_num = 0
-pos_l = []
-while run:
-    connections = server.connections
-    readable, writable, errored = select.select(connections + [server.server],
-                                                connections, connections, 0.5)
+    run = True
 
-    for read in readable:
-        if read == server.server:
-            conn, addr = server.accept_connection(False)
-            print(f"New connection to {conn}, {addr}")
-            server.send(conn, ("handshake", handshake_dict))
-            server.send(conn, ("viewer", None))
+    game = Gamecalc(s_inputs["player_num"], s_inputs["width"], s_inputs["height"],
+                    server)
 
-        else:
-            msg = server.recieve(read)
-            if msg[0] is None:
-                continue
-            elif msg[0] == "ByeBye":
-                print(f"player {player.get(read, 'viewer')} left")
-                if player.get(read, 'viewer') != "viewer":
-                    game.set_eliminated(player[read])
-                    for write in writable:
-                        server.send(write, ("next player", (game.player_to_move(),
-                                                            round_num)))
-                errored.append(read)
-            elif msg[0] == "position":
-                msg = msg[1]
-                if player.get(read, "viewer") == game.player_to_move():
-                    row, column = msg
-                    pos_val, pos_player = game.get_pos(row, column, False, True)
-                    if (pos_player == game.player_to_move()) or (pos_val == 0):
-                        pos_l = [msg]
+    round_num = 0
+    pos_l = []
+    while run:
+        # Game loop
+        connections = server.connections
+        readable, writable, errored = select.select(connections + [server.server],
+                                                    connections, connections, 0.5)
+
+        for read in readable:
+            if read == server.server:
+                conn, addr = server.accept_connection(False)
+                print(f"New connection to {conn}, {addr}")
+                server.send(conn, ("handshake", handshake_dict))
+                server.send(conn, ("viewer", None))
+
+            else:
+                msg = server.recieve(read)
+                if msg[0] is None:
+                    continue
+                elif msg[0] == "ByeBye":
+                    print(f"player {player.get(read, 'viewer')} left")
+                    if player.get(read, 'viewer') != "viewer":
+                        game.set_eliminated(player[read])
+                        for write in writable:
+                            server.send(write, ("next player", (game.player_to_move(),
+                                                                round_num)))
+                    errored.append(read)
+                elif msg[0] == "position":
+                    msg = msg[1]
+                    if player.get(read, "viewer") == game.player_to_move():
+                        row, column = msg
+                        pos_val, pos_player = game.get_pos(row, column, False, True)
+                        if (pos_player == game.player_to_move()) or (pos_val == 0):
+                            pos_l = [msg]
+                        else:
+                            pos_l = []
                     else:
                         pos_l = []
+                    msg = (None, None)
                 else:
-                    pos_l = []
-                msg = (None, None)
+                    print(f"Unkown message: {msg}")
+                    msg = (None, None)
+
+        if pos_l:
+            print(f"Round {round_num} with player {game.player_to_move()} and move {pos_l}")
+            game.update_player(game.player_to_move(), pos_l, [1], writable)
+            if game.winner is not None:
+                print("finished")
+                for write in writable:
+                    server.send(write, ("finished", game.winner))
+                    time.sleep(0.2)
+                    server.close_connection(write)
+                run = False
+                break
+
+            pos_l = []
+            round_num += 1
+            for write in writable:
+                server.send(write, ("next player", (game.player_next_to_move(), round_num)))
+            game.increase_counter()
+
+        for error in errored:
+            if player.get(error, 'viewer') == "viewer":
+                print(f"Closed conncetion to player 'viewer' at {error}")
             else:
-                print(f"Unkown message: {msg}")
-                msg = (None, None)
+                print(f"Closed conncetion to player {player[error]}")
+            server.close_connection(error)
 
-    if pos_l:
-        print(f"Round {round_num} with player {game.player_to_move()} and move {pos_l}")
-        game.update_player(game.player_to_move(), pos_l, [1], writable)
-        pos_l = []
-        round_num += 1
-        for write in writable:
-            server.send(write, ("next player", (game.player_next_to_move(), round_num)))
-        game.increase_counter()
-
-    for error in errored:
-        if player.get(error, 'viewer') == "viewer":
-            print(f"Closed conncetion to player 'viewer' at {error}")
-        else:
-            print(f"Closed conncetion to player {player[error]}")
-        server.close_connection(error)
+    restart_gui = server_gui_restart(player_num=s_inputs["player_num"],
+                                     width=s_inputs["width"],
+                                     height=s_inputs["height"])
+    restart_input = restart_gui.get_inputs()
+    s_inputs["player_num"] = restart_input["player_num"]
+    s_inputs["width"] = restart_input["width"]
+    s_inputs["height"] = restart_input["height"]

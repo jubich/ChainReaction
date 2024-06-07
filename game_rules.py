@@ -15,6 +15,7 @@ class Gamecalc():
         self.network = network
         self._counter = 0
         self._create_boards()
+        self.winner = None
 
     def _create_boards(self):
         self.player_pos = {}
@@ -54,7 +55,9 @@ class Gamecalc():
                 self.player_pos[player][row][column] -= max_num
             self._clear_substract_board()
             self._clear_chain_board(player, connections)
-            self._check_elimination()
+            alive = self.get_alive()
+            if len(alive) == 1:
+                self.winner = alive[0]
 
     def _update_chain_board(self, row, column):
         try:
