@@ -55,6 +55,8 @@ class client_gui():
 
     def get_inputs(self):
         inputs = {}
+        if len(self._nickname) > 20:
+            self._nickname = self._nickname[:20]
         inputs["nickname"] = self._nickname
         inputs["ip"] = self._ip
         inputs["port"] = self._port
@@ -96,6 +98,8 @@ class client_gui_restart():
 
     def get_inputs(self):
         inputs = {}
+        if len(self._nickname) > 20:
+            self._nickname = self._nickname[:20]
         inputs["nickname"] = self._nickname
         return inputs
 
