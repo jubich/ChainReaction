@@ -49,6 +49,7 @@ while restart:
                     server)
 
     round_num = 0
+    last_round_num = round_num
     pos_l = []
     while run:
         # Game loop
@@ -71,6 +72,8 @@ while restart:
                     print(f"player {player.get(read, 'viewer')} left")
                     if player.get(read, 'viewer') != "viewer":
                         game.set_eliminated(player[read])
+                        game.set_state_for_undo()
+                        last_round_num = round_num
                         for write in writable:
                             server.send(write, ("next player", (game.player_to_move(),
                                                                 round_num)))
@@ -87,12 +90,17 @@ while restart:
                     else:
                         pos_l = []
                     msg = (None, None)
+                elif msg[0] == "undo":
+                    round_num = last_round_num
+                    game.undo(writable, round_num)
                 else:
                     print(f"Unkown message: {msg}")
                     msg = (None, None)
 
         if pos_l:
             print(f"Round {round_num} with player {game.player_to_move()} and move {pos_l}")
+            game.set_state_for_undo()
+            last_round_num = round_num
             game.update_player(game.player_to_move(), pos_l, [1], writable)
             if game.winner is not None:
                 print("finished")

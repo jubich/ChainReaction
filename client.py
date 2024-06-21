@@ -105,9 +105,10 @@ while restart:
                                          handshake_infos["nicknames"], round_num)
             if event.type == pygame.MOUSEBUTTONDOWN:
                 mouse_x, mouse_y = pygame.mouse.get_pos()
-                pos = player.mouse_pos(mouse_x, mouse_y)
-                if (writable) and (not None in pos):
-                    network.send(("position", pos))
+                command = player.mouse_pos(mouse_x, mouse_y)
+                if command is not None:
+                    network.send(command)
+
     pygame.display.quit()
     restart_gui = client_gui_restart(c_inputs["nickname"])
     restart_input = restart_gui.get_inputs()

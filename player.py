@@ -26,4 +26,13 @@ class Player():
             if mouse_x <= self.gameboard.v_lines[num_c][0]:
                 column = num_c
                 break
-        return row, column
+        if (column and row) is not None:
+            return ("position", (row, column))
+        button_w_min = self.gameboard._button_rect[0]
+        button_w_max = self.gameboard._button_rect[0] + self.gameboard._button_rect[2]
+        button_h_min = self.gameboard._button_rect[1]
+        button_h_max = self.gameboard._button_rect[1] + self.gameboard._button_rect[3]
+        if (mouse_x >= button_w_min) and (mouse_x <= button_w_max):
+            if (mouse_y >= button_h_min) and (mouse_y <= button_h_max):
+                return ("undo", None)
+        return None

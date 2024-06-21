@@ -206,6 +206,11 @@ class Gameboard():
         h_pos += 34
         text_surface = font.render(f'{next_pl}', False, (255, 255, 255))
         self.window.blit(text_surface, (self.curr_board_w + 10, h_pos))
+        h_pos += 34
+        self._button_rect = (self.curr_board_w + 5, h_pos-5, 80, 34)
+        pygame.draw.rect(self.window, (255, 0, 0), self._button_rect)
+        text_surface = font.render("Undo!", False, (255, 255, 255))
+        self.window.blit(text_surface, (self.curr_board_w + 10, h_pos))
 
     @staticmethod
     def get_value_in_range(min_v, max_v, value):

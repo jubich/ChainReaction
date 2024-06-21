@@ -6,6 +6,8 @@
 
 import time
 import numpy as np
+import copy
+
 
 class Gamecalc():
     def __init__(self, player_num, width_num, height_num, network):
@@ -26,6 +28,9 @@ class Gamecalc():
             self.substract_board[num] = np.zeros((self.height_num, self.width_num), dtype=int)
             self.player_alive[num] = True
         self.chain_board = np.zeros((self.height_num, self.width_num), dtype=int)
+        self.last_player_pos = self.player_pos
+        self.last_player_alive = self.player_alive
+        self._last_counter = self._counter
 
     def update_player(self, player, pos_l, num_l, connections):
         # pos + num as list
@@ -158,3 +163,18 @@ class Gamecalc():
     def increase_counter(self):
         # "aka next round/player"
         self._counter += 1
+
+    def set_state_for_undo(self):
+        self.last_player_pos = copy.deepcopy(self.player_pos)
+        self.last_player_alive = copy.deepcopy(self.player_alive)
+        self._last_counter = copy.deepcopy(self._counter)
+
+    def undo(self, connections, round_num):
+        self.player_pos = copy.deepcopy(self.last_player_pos)
+        self.player_alive = copy.deepcopy(self.last_player_alive)
+        self._counter = copy.deepcopy(self._last_counter)
+        next_player = self.player_to_move()
+        if connections is not None:
+            for connection in connections:
+                self.network.send(connection, ("positions", self.player_pos))
+                self.network.send(connection, ("next player", (next_player, round_num)))
