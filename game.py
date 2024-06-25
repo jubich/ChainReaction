@@ -8,13 +8,15 @@ import numpy as np
 import pygame
 
 class Gameboard():
-    def __init__(self, width_num, height_num, player_num):
-        self.inside = 60        # min size of box inside
-        self.line_width = 3     # width of box seperator
+    def __init__(self, min_box_size, line_width, player_num, board_color,
+                 width_num, height_num, player_colors):
+        self.inside = min_box_size        # min size of box inside
+        self.line_width = line_width      # width of box seperator
         self.player_num = int(player_num)
-        self.board_color = (0, 0, 0)
+        self.board_color = board_color
         self.width_num = int(width_num)
         self.height_num = int(height_num)
+        self.player_colors = player_colors
         self.width_min = width_num * self.inside + (height_num-1) * self.line_width
         self.height_min = height_num * self.inside + (height_num-1) * self.line_width
         self.curr_board_h = self.height_min
@@ -143,13 +145,10 @@ class Gameboard():
                                        circle_radius)
 
     def _get_player_color(self, player_num):
-        color_l = [(255, 0, 0), (0, 255, 0), (0, 0, 255),
-                   (255, 0, 255), (0, 255, 255), (102, 102,0),
-                   (255, 178, 102), (51, 102, 0), (204, 0, 102)]
-        color_len = len(color_l)
+        color_len = len(self.player_colors)
         if player_num is None:
             return (0, 0, 0)
-        return color_l[player_num % color_len]
+        return self.player_colors[player_num % color_len]
 
     def _draw_bar(self, player_pos, nicknames):
         total_count = 0

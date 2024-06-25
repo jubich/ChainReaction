@@ -14,16 +14,27 @@ import select
 from network import Network_s
 from game_rules import Gamecalc
 from server_gui import server_gui, server_gui_restart
+from configfile import load_config, get_config, get_config_none, DEFAULTS
+
+# load config
+config = load_config()
+player_num = get_config_none(config, DEFAULTS, "SERVER", "player_number", int)
+width = get_config_none(config, DEFAULTS, "SERVER", "gameboard_width", int)
+height = get_config_none(config, DEFAULTS, "SERVER", "gameboard_height", int)
+port = int(get_config(config, DEFAULTS, "SERVER", "port"))
+if get_config_none(config, DEFAULTS, "SERVER", "ip", str) is None:
+    ip = socket.gethostbyname(socket.gethostname())
+else:
+    ip = get_config(config, DEFAULTS, "SERVER", "ip")
+reaction_time_step = float(get_config(config, DEFAULTS, "SERVER", "reaction_time_step"))
 
 # get user inputs via gui
-
-s_gui = server_gui(player_num=3, width=5, height=5,
-                   ip=socket.gethostbyname(socket.gethostname()), port=5555)
+s_gui = server_gui(player_num=player_num, width=width, height=height,
+                   ip=socket.gethostbyname(socket.gethostname()), port=port)
 
 s_inputs = s_gui.get_inputs()
 
 # initial handshake
-
 server = Network_s(s_inputs["ip"], s_inputs["port"])
 
 if not server.bind_address(2):
@@ -46,7 +57,7 @@ while restart:
     run = True
 
     game = Gamecalc(s_inputs["player_num"], s_inputs["width"], s_inputs["height"],
-                    server)
+                    reaction_time_step, server)
 
     round_num = 0
     last_round_num = round_num

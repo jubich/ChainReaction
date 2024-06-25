@@ -8,6 +8,7 @@ import sys
 import time
 import socket
 import select
+import ast
 
 import numpy as np
 import pygame
@@ -16,11 +17,23 @@ from network import Network_c
 from player import Player
 from game import Gameboard
 from client_gui import client_gui, client_quit_gui, client_gui_restart
+from configfile import load_config, get_config, get_config_none, DEFAULTS
 
 pygame.init()
+
+# load config
+config = load_config()
+fps_limit = int(get_config(config, DEFAULTS, "CLIENT", "fps_limit"))
+box_min_size = int(get_config(config, DEFAULTS, "CLIENT", "box_min_size"))
+box_line_width = int(get_config(config, DEFAULTS, "CLIENT", "box_line_width"))
+board_color = ast.literal_eval(get_config(config, DEFAULTS, "CLIENT", "board_color"))
+player_colors = ast.literal_eval(get_config(config, DEFAULTS, "CLIENT", "player_colors"))
+nickname = get_config_none(config, DEFAULTS, "CLIENT", "nickname", str)
+ip = get_config_none(config, DEFAULTS, "CLIENT", "ip", str)
+port = int(get_config(config, DEFAULTS, "SERVER", "port"))
+
 # get user inputs via gui
-c_gui = client_gui(nickname="user",
-                   ip=socket.gethostbyname(socket.gethostname()), port=5555)
+c_gui = client_gui(nickname=nickname, ip=ip, port=port)
 
 c_inputs = c_gui.get_inputs()
 
@@ -51,7 +64,8 @@ while restart:
         player_pos[num] = np.zeros((HEIGHT_NUM, WIDTH_NUM), dtype=int)
     run = True
 
-    gameboard = Gameboard(WIDTH_NUM, HEIGHT_NUM, PLAYER_NUM)
+    gameboard = Gameboard(box_min_size, box_line_width, PLAYER_NUM, board_color,
+                          WIDTH_NUM, HEIGHT_NUM, player_colors)
     player = Player(gameboard)
 
     clock = pygame.time.Clock()
@@ -60,7 +74,7 @@ while restart:
     while run:
         # game loop
         pygame.display.update()
-        clock.tick(60)
+        clock.tick(fps_limit)
         connection = [network.client]
         readable, writable, errored = select.select(connection, connection,
                                                     connection, 0.5)

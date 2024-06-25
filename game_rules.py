@@ -10,10 +10,12 @@ import copy
 
 
 class Gamecalc():
-    def __init__(self, player_num, width_num, height_num, network):
+    def __init__(self, player_num, width_num, height_num, reaction_time_step,
+                 network):
         self.player_num = int(player_num)
         self.width_num = int(width_num)
         self.height_num = int(height_num)
+        self.reaction_time_step = reaction_time_step
         self.network = network
         self._counter = 0
         self._create_boards()
@@ -53,7 +55,7 @@ class Gamecalc():
             if len(self.get_alive()) == 1:
                 print("break chain")
                 return
-            time.sleep(0.5)
+            time.sleep(self.reaction_time_step)
             for item in chain_reaction:
                 pos, max_num = item
                 row, column = pos
