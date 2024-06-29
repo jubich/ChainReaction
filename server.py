@@ -10,11 +10,17 @@ import sys
 import time
 import socket
 import select
+import uuid
 
 from network import Network_s
 from game_rules import Gamecalc
 from server_gui import server_gui, server_gui_restart
 from configfile import load_config, get_config, get_config_none, DEFAULTS
+from loggingsetup import logger, setup_logging
+
+session_uuid = str(uuid.uuid4())  # to differentiate sessions
+setup_logging("server.log.jsonl")
+logger.debug("New session started!", extra={"session_uuid": session_uuid})
 
 # load config
 config = load_config()
@@ -24,40 +30,48 @@ height = get_config_none(config, DEFAULTS, "SERVER", "gameboard_height", int)
 port = int(get_config(config, DEFAULTS, "SERVER", "port"))
 if get_config_none(config, DEFAULTS, "SERVER", "ip", str) is None:
     ip = socket.gethostbyname(socket.gethostname())
+    logger.debug("IP from socket", extra={"session_uuid": session_uuid})
 else:
     ip = get_config(config, DEFAULTS, "SERVER", "ip")
 reaction_time_step = float(get_config(config, DEFAULTS, "SERVER", "reaction_time_step"))
 
+logger.debug("Config loaded", extra={"session_uuid": session_uuid,
+                                     "reaction_time_step": reaction_time_step})
+
 # get user inputs via gui
 s_gui = server_gui(player_num=player_num, width=width, height=height,
-                   ip=socket.gethostbyname(socket.gethostname()), port=port)
+                   ip=ip, port=port)
 
 s_inputs = s_gui.get_inputs()
 
+logger.debug("Inputs", extra={"session_uuid": session_uuid,
+                              "player_num": s_inputs["player_num"],
+                              "width": s_inputs["width"],
+                              "height": s_inputs["height"]})
+
 # initial handshake
-server = Network_s(s_inputs["ip"], s_inputs["port"])
+server = Network_s(s_inputs["ip"], s_inputs["port"], logger, session_uuid)
 
 if not server.bind_address(2):
-    print("Failed to bind server on", s_inputs["ip"], s_inputs["port"])
-    time.sleep(2)
     sys.exit()
-print("Bound succesfull!")
+logger.info("Bound succesfull!", extra={"session_uuid": session_uuid})
 server.setblocking(False)
 
 restart = True
 
 while restart:
     # restart loop
+    logger.debug("restart", extra={"session_uuid": session_uuid})
 
-    nicknames, player, _, handshake_dict = server.handshake(s_inputs)
-    print("Handshake done!")
+    nicknames, player, _, handshake_dict, conn_uuid = server.handshake(s_inputs)
+    logger.info("Handshake done!", extra={"session_uuid": session_uuid})
 
     # start game
 
     run = True
 
     game = Gamecalc(s_inputs["player_num"], s_inputs["width"], s_inputs["height"],
-                    reaction_time_step, server)
+                    reaction_time_step, server, logger, session_uuid)
 
     round_num = 0
     last_round_num = round_num
@@ -72,14 +86,11 @@ while restart:
             if read == server.server:
                 conn, addr = server.accept_connection(False)
                 print(f"New connection to {conn}, {addr}")
-                server.send(conn, ("handshake", handshake_dict))
-                server.send(conn, ("viewer", None))
-
+                logger.debug("New connection",
+                             extra={"session_uuid": session_uuid})
             else:
                 msg = server.recieve(read)
-                if msg[0] is None:
-                    continue
-                elif msg[0] == "ByeBye":
+                if msg[0] == "ByeBye":
                     print(f"player {player.get(read, 'viewer')} left")
                     if player.get(read, 'viewer') != "viewer":
                         game.set_eliminated(player[read])
@@ -88,9 +99,24 @@ while restart:
                         for write in writable:
                             server.send(write, ("next player", (game.player_to_move(),
                                                                 round_num)))
-                    errored.append(read)
+                    logger.debug("Recieved ByeBye",
+                                 extra={"session_uuid": session_uuid,
+                                        "client_uuid": conn_uuid.pop(read),
+                                        "next_player": game.player_to_move(),
+                                        "round_num": round_num,
+                                        "alive": game.player_alive,
+                                        "counter": game._counter})
+                    if player.get(read, 'viewer') == "viewer":
+                        print(f"Closed conncetion to spectator at {read}")
+                    else:
+                        print(f"Closed conncetion to player {player[read]}")
+                    server.close_connection(read)
                 elif msg[0] == "position":
                     msg = msg[1]
+                    logger.debug("Recieved position",
+                                 extra={"session_uuid": session_uuid,
+                                        "client_uuid": conn_uuid[read],
+                                        "position": msg})
                     if player.get(read, "viewer") == game.player_to_move():
                         row, column = msg
                         pos_val, pos_player = game.get_pos(row, column, False, True)
@@ -102,23 +128,43 @@ while restart:
                         pos_l = []
                     msg = (None, None)
                 elif msg[0] == "undo":
-                    round_num = last_round_num
-                    game.undo(writable, round_num)
+                    logger.debug("Recieved undo",
+                                 extra={"session_uuid": session_uuid,
+                                        "client_uuid": conn_uuid[read]})
+                    if player.get(read, "viewer") != "viewer":
+                        round_num = last_round_num
+                        game.undo(writable, round_num)
+                elif msg[0] == "handshake":
+                    logger.info("Added spectator",
+                                extra={"session_uuid": session_uuid,
+                                       "client_uuid": msg[1][2]})
+                    conn_uuid[read] = msg[1][2]
+                    server.send(conn, ("handshake", handshake_dict))
+                    server.send(conn, ("viewer", None))
                 else:
-                    print(f"Unkown message: {msg}")
+                    logger.warning("Recieved unknown msg",
+                                   extra={"session_uuid": session_uuid,
+                                          "client_uuid": conn_uuid[read],
+                                          "recieved": msg})
                     msg = (None, None)
 
         if pos_l:
-            print(f"Round {round_num} with player {game.player_to_move()} and move {pos_l}")
+            logger.debug("Make move", extra={"session_uuid": session_uuid,
+                                             "player_to_move": game.player_to_move(),
+                                             "round_num": round_num,
+                                             "move": pos_l})
             game.set_state_for_undo()
             last_round_num = round_num
             game.update_player(game.player_to_move(), pos_l, [1], writable)
             if game.winner is not None:
-                print("finished")
+                logger.info("Game finished!",
+                            extra={"session_uuid": session_uuid,
+                                   "winner": game.winner})
                 for write in writable:
                     server.send(write, ("finished", game.winner))
                     time.sleep(0.2)
                     server.close_connection(write)
+                    conn_uuid.pop(write)
                 run = False
                 break
 
@@ -126,15 +172,21 @@ while restart:
             round_num += 1
             for write in writable:
                 server.send(write, ("next player", (game.player_next_to_move(), round_num)))
+            logger.debug("Next player", extra={"session_uuid": session_uuid,
+                                               "next_player": game.player_next_to_move(),
+                                               "round_num": round_num})
             game.increase_counter()
 
         for error in errored:
             if player.get(error, 'viewer') == "viewer":
-                print(f"Closed conncetion to player 'viewer' at {error}")
+                print(f"Closed conncetion to spectator at {error}")
             else:
                 print(f"Closed conncetion to player {player[error]}")
+            logger.error("Connection failed!",
+                         extra={"session_uuid": session_uuid,
+                                "client_uuid": conn_uuid.pop(error)})
             server.close_connection(error)
-
+    logger.debug("Game loop stopped!", extra={"session_uuid": session_uuid})
     restart_gui = server_gui_restart(player_num=s_inputs["player_num"],
                                      width=s_inputs["width"],
                                      height=s_inputs["height"])
@@ -142,3 +194,4 @@ while restart:
     s_inputs["player_num"] = restart_input["player_num"]
     s_inputs["width"] = restart_input["width"]
     s_inputs["height"] = restart_input["height"]
+logger.debug("Server stopped!", extra={"session_uuid": session_uuid})

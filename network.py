@@ -15,23 +15,26 @@ HEADERSIZE = 20
 
 
 class Network_c:
-    def __init__(self, ip, port):
+    def __init__(self, ip, port, logger, client_uuid):
         self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.ip = ip
         self.port = port
         self.addr = (self.ip, self.port)
+        self.logger = logger
+        self.client_uuid = client_uuid
 
     def connect(self):
         try:
             self.client.connect(self.addr)
-            print("connected")
             return True
         except Exception as e:
-            print("connection failed:", e.args)
+            self.logger.error("Connection failed!",
+                              extra={"client_uuid": self.client_uuid,
+                                     "e_args": e.args,
+                                     "error_type": type(e)})
             return False
 
     def send(self, data):
-        print("sending", data)
         msg = pickle.dumps(data)
         msg = bytes(f"{len(msg):<{HEADERSIZE}}", "utf-8") + msg
         self.client.sendall(msg)
@@ -41,13 +44,11 @@ class Network_c:
         if msg != "":
             msg_len = int(msg)
             recv = pickle.loads(self.client.recv(msg_len))
-            print("recieved", recv)
             return recv
         return (None, None)
 
     def close(self):
         self.client.close()
-        print("Connection closed!")
 
     def setblocking(self, flag):
         self.client.setblocking(flag)
@@ -55,9 +56,13 @@ class Network_c:
     def handshake(self, nickname, player=True):
         tries = 0
         if player:
-            self.send(("handshake", ("player", nickname)))
+            self.send(("handshake", ("player", nickname, self.client_uuid)))
+            self.logger.debug("Handshake player",
+                              extra={"client_uuid": self.client_uuid})
         else:
-            self.send(("handshake", ("spectator", None)))
+            self.send(("handshake", ("spectator", None, self.client_uuid)))
+            self.logger.debug("Handshake spectator",
+                              extra={"client_uuid": self.client_uuid})
         while tries < 100:
             time.sleep(1)
             tries += 1
@@ -69,27 +74,30 @@ class Network_c:
                 if msg[0] == "handshake":
                     return msg[1]
                 else:
-                    print(f"Unkown message: {msg}")
+                    self.logger.warning("Unkown message",
+                                        extra={"client_uuid": self.client_uuid,
+                                               "recieved": msg})
             if errored:
-                print("Connection failed!")
+                self.logger.error("Connection failed!",
+                                  extra={"client_uuid": self.client_uuid})
                 self.close()
-                time.sleep(2)
                 sys.exit()
-        print("Handshake took to long!")
-        print("Handshake stopped!")
+        self.logger.warning("Handshake took to long, connection closed!",
+                            extra={"client_uuid": self.client_uuid})
         self.send(("ByeBye", None))
         self.close()
-        time.sleep(2)
         sys.exit()
 
 
 class Network_s:
-    def __init__(self, ip, port):
+    def __init__(self, ip, port, logger, session_uuid):
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.ip = ip
         self.port = port
         self.addr = (self.ip, self.port)
         self.connections = []
+        self.logger = logger
+        self.session_uuid = session_uuid
 
     def bind_address(self, listen):
         try:
@@ -97,7 +105,10 @@ class Network_s:
             self.server.listen(listen)
             return True
         except Exception as e:
-            print("Failed binding", e.args)
+            self.logger.error("Failed binding!",
+                              extra={"session_uuid": self.session_uuid,
+                                     "e_args": e.args,
+                                     "error_type": type(e)})
             return False
 
     def accept_connection(self, blocking_flag):
@@ -107,7 +118,6 @@ class Network_s:
         return connection, addr
 
     def send(self, connection, data):
-        print("sending", data)
         msg = pickle.dumps(data)
         msg = bytes(f"{len(msg):<{HEADERSIZE}}", "utf-8") + msg
         connection.sendall(msg)
@@ -117,14 +127,12 @@ class Network_s:
         if msg != "":
             msg_len = int(msg)
             recv = pickle.loads(connection.recv(msg_len))
-            print("recieved", recv)
             return recv
         return (None, None)
 
     def close_connection(self, connection):
         self.connections.remove(connection)
         connection.close()
-        print(f"Closed connection to {connection}!")
 
     def setblocking(self, flag):
         self.server.setblocking(flag)
@@ -133,6 +141,7 @@ class Network_s:
         finished = False
         players = {}
         spectators = []
+        conn_uuid = {}
         while not finished:
             time.sleep(1)
             print("Waiting for players ...")
@@ -143,6 +152,8 @@ class Network_s:
                 if read == self.server:
                     conn, addr = self.accept_connection(False)
                     print(f"New connection to {conn}, {addr}")
+                    self.logger.debug("New connection",
+                                      extra={"session_uuid": self.session_uuid})
                 else:
                     msg = self.recieve(read)
                     if msg[0] == "handshake":
@@ -150,22 +161,48 @@ class Network_s:
                             if len(players) == s_inputs["player_num"]:
                                 finished = True
                                 spectators.append(read)
+                                self.logger.info("Added player as spactator",
+                                                  extra={"session_uuid": self.session_uuid,
+                                                         "client_uuid": msg[1][2]})
+                                conn_uuid[read] = msg[1][2]
                             else:
                                 players[read] = msg[1][1]
+                                self.logger.info("Added player",
+                                                  extra={"session_uuid": self.session_uuid,
+                                                         "client_uuid": msg[1][2]})
+                                conn_uuid[read] = msg[1][2]
                         else:
+                            self.logger.info("Added spectator",
+                                              extra={"session_uuid": self.session_uuid,
+                                                     "client_uuid": msg[1][2]})
                             spectators.append(read)
+                            conn_uuid[read] = msg[1][2]
                     elif msg[0] == "ByeBye":
+                        print(f"Closed connection to {read}")
+                        self.logger.debug("Closed connection",
+                                          extra={"session_uuid": self.session_uuid,
+                                                 "client_uuid": conn_uuid.pop(read)})
                         if players.pop(read, None) is None:
                             spectators.remove(read)
                         self.close_connection(read)
                     else:
-                        print(f"Unkown message: {msg}")
+                        self.logger.warning("Unkown message",
+                                            extra={"session_uuid": self.session_uuid,
+                                                   "client_uuid": conn_uuid[read],
+                                                   "recieved": msg})
+
 
             for error in errored:
-                print(f"Error with {error}!")
+                self.logger.error("Connection failed!",
+                                  extra={"session_uuid": self.session_uuid,
+                                         "client_uuid": conn_uuid.pop(error)})
+                if players.pop(error, None) is None:
+                    spectators.remove(error)
                 self.close_connection(error)
 
             if len(players) >= s_inputs["player_num"]:
+                self.logger.debug("All players joined",
+                                  extra={"session_uuid": self.session_uuid})
                 finished = True
 
         # randomize player order
@@ -183,11 +220,18 @@ class Network_s:
         handshake_dict["player_num"] = s_inputs["player_num"]
         handshake_dict["width"] = s_inputs["width"]
         handshake_dict["height"] = s_inputs["height"]
+        handshake_dict["session_uuid"] = self.session_uuid
         for conn, num in player_dict.items():
             self.send(conn, ("handshake", handshake_dict))
             self.send(conn, ("your number", num))
+            self.logger.debug("Send handshake and number",
+                              extra={"session_uuid": self.session_uuid,
+                                     "client_uuid": conn_uuid[conn],
+                                     "number": num})
 
         for spectator in spectators:
             self.send(spectator, ("viewer", None))
-
-        return nicknames_dict, player_dict, spectators, handshake_dict
+            self.logger.debug("Send spectator",
+                              extra={"session_uuid": self.session_uuid,
+                                     "client_uuid": conn_uuid[conn]})
+        return nicknames_dict, player_dict, spectators, handshake_dict, conn_uuid

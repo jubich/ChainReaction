@@ -11,12 +11,14 @@ import copy
 
 class Gamecalc():
     def __init__(self, player_num, width_num, height_num, reaction_time_step,
-                 network):
+                 network, logger, session_uuid):
         self.player_num = int(player_num)
         self.width_num = int(width_num)
         self.height_num = int(height_num)
         self.reaction_time_step = reaction_time_step
         self.network = network
+        self.logger = logger
+        self.session_uuid = session_uuid
         self._counter = 0
         self._create_boards()
         self.winner = None
@@ -51,9 +53,14 @@ class Gamecalc():
         if connections is not None:
             for connection in connections:
                 self.network.send(connection, ("positions", self.player_pos))
+            self.logger.debug("Send positions",
+                              extra={"session_uuid": self.session_uuid,
+                                     "positions": self.player_pos})
         if chain_reaction:
             if len(self.get_alive()) == 1:
-                print("break chain")
+                if self.logger is not None:
+                    self.logger.debug("Chain reaction stopped!",
+                                      extra={"session_uuid": self.session_uuid})
                 return
             time.sleep(self.reaction_time_step)
             for item in chain_reaction:
@@ -180,3 +187,9 @@ class Gamecalc():
             for connection in connections:
                 self.network.send(connection, ("positions", self.player_pos))
                 self.network.send(connection, ("next player", (next_player, round_num)))
+        self.logger.debug("Undo position",
+                          extra={"session_uuid": self.session_uuid,
+                                 "round_num": round_num,
+                                 "next_player": next_player,
+                                 "positions": self.player_pos,
+                                 "counter": self._counter})

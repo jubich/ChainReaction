@@ -27,7 +27,7 @@ def test_corner_reaction_tl():
                 1: np.array([[0, 0, 0],
                              [0, 0, 0],
                              [0, 0, 1]])}
-    g_calc = Gamecalc(2, 3, 3, 0, None)
+    g_calc = Gamecalc(2, 3, 3, 0, None, None, None)
     g_calc.player_pos = start_pos
     g_calc.update_player(0, [(0, 0)], [1], None)
     assert compare_positions(goal_pos, g_calc.player_pos)
@@ -46,7 +46,7 @@ def test_corner_reaction_tr():
                 1: np.array([[0, 0, 0],
                              [0, 0, 0],
                              [1, 0, 0]])}
-    g_calc = Gamecalc(2, 3, 3, 0, None)
+    g_calc = Gamecalc(2, 3, 3, 0, None, None, None)
     g_calc.player_pos = start_pos
     g_calc.update_player(0, [(0, 2)], [1], None)
     assert compare_positions(goal_pos, g_calc.player_pos)
@@ -65,7 +65,7 @@ def test_corner_reaction_bl():
                 1: np.array([[0, 0, 1],
                              [0, 0, 0],
                              [0, 0, 0]])}
-    g_calc = Gamecalc(2, 3, 3, 0, None)
+    g_calc = Gamecalc(2, 3, 3, 0, None, None, None)
     g_calc.player_pos = start_pos
     g_calc.update_player(0, [(2, 0)], [1], None)
     assert compare_positions(goal_pos, g_calc.player_pos)
@@ -84,7 +84,7 @@ def test_corner_reaction_br():
                 1: np.array([[1, 0, 0],
                              [0, 0, 0],
                              [0, 0, 0]])}
-    g_calc = Gamecalc(2, 3, 3, 0, None)
+    g_calc = Gamecalc(2, 3, 3, 0, None, None, None)
     g_calc.player_pos = start_pos
     g_calc.update_player(0, [(2, 2)], [1], None)
     assert compare_positions(goal_pos, g_calc.player_pos)
@@ -103,7 +103,7 @@ def test_edge_reaction_tc():
                 1: np.array([[0, 0, 0],
                              [0, 0, 0],
                              [0, 1, 0]])}
-    g_calc = Gamecalc(2, 3, 3, 0, None)
+    g_calc = Gamecalc(2, 3, 3, 0, None, None, None)
     g_calc.player_pos = start_pos
     g_calc.update_player(0, [(0, 1)], [1], None)
     assert compare_positions(goal_pos, g_calc.player_pos)
@@ -122,7 +122,7 @@ def test_edge_reaction_rc():
                 1: np.array([[0, 0, 0],
                              [1, 0, 0],
                              [0, 0, 0]])}
-    g_calc = Gamecalc(2, 3, 3, 0, None)
+    g_calc = Gamecalc(2, 3, 3, 0, None, None, None)
     g_calc.player_pos = start_pos
     g_calc.update_player(0, [(1, 2)], [1], None)
     assert compare_positions(goal_pos, g_calc.player_pos)
@@ -141,7 +141,7 @@ def test_edge_reaction_bc():
                 1: np.array([[0, 1, 0],
                              [0, 0, 0],
                              [0, 0, 0]])}
-    g_calc = Gamecalc(2, 3, 3, 0, None)
+    g_calc = Gamecalc(2, 3, 3, 0, None, None, None)
     g_calc.player_pos = start_pos
     g_calc.update_player(0, [(2, 1)], [1], None)
     assert compare_positions(goal_pos, g_calc.player_pos)
@@ -160,7 +160,7 @@ def test_edge_reaction_lc():
                 1: np.array([[0, 0, 0],
                              [0, 0, 1],
                              [0, 0, 0]])}
-    g_calc = Gamecalc(2, 3, 3, 0, None)
+    g_calc = Gamecalc(2, 3, 3, 0, None, None, None)
     g_calc.player_pos = start_pos
     g_calc.update_player(0, [(1, 0)], [1], None)
     assert compare_positions(goal_pos, g_calc.player_pos)
@@ -179,7 +179,7 @@ def test_center_reaction_cc():
                 1: np.array([[0, 0, 1],
                              [0, 0, 0],
                              [0, 0, 0]])}
-    g_calc = Gamecalc(2, 3, 3, 0, None)
+    g_calc = Gamecalc(2, 3, 3, 0, None, None, None)
     g_calc.player_pos = start_pos
     g_calc.update_player(0, [(1, 1)], [1], None)
     assert compare_positions(goal_pos, g_calc.player_pos)
@@ -206,7 +206,7 @@ def test_capture_with_overloading_tl():
                              [1, 1, 0, 0, 0],
                              [0, 0, 0, 0, 0],
                              [0, 0, 0, 0, 0]])}
-    g_calc = Gamecalc(2, 5, 5, 0, None)
+    g_calc = Gamecalc(2, 5, 5, 0, None, None, None)
     g_calc.player_pos = start_pos
     g_calc.update_player(1, [(0, 0)], [1], None)
     assert compare_positions(goal_pos, g_calc.player_pos)
@@ -233,7 +233,7 @@ def test_capture_with_overloading_tr():
                              [0, 0, 0, 1, 1],
                              [0, 0, 0, 0, 0],
                              [0, 0, 0, 0, 0]])}
-    g_calc = Gamecalc(2, 5, 5, 0, None)
+    g_calc = Gamecalc(2, 5, 5, 0, None, None, None)
     g_calc.player_pos = start_pos
     g_calc.update_player(1, [(0, 4)], [1], None)
     assert compare_positions(goal_pos, g_calc.player_pos)
@@ -260,7 +260,7 @@ def test_capture_with_overloading_br():
                              [0, 0, 0, 1, 1],
                              [0, 0, 1, 1, 2],
                              [0, 0, 1, 2, 0]])}
-    g_calc = Gamecalc(2, 5, 5, 0, None)
+    g_calc = Gamecalc(2, 5, 5, 0, None, None, None)
     g_calc.player_pos = start_pos
     g_calc.update_player(1, [(4, 4)], [1], None)
     assert compare_positions(goal_pos, g_calc.player_pos)
@@ -287,7 +287,7 @@ def test_capture_with_overloading_bl():
                              [1, 1, 0, 0, 0],
                              [2, 1, 1, 0, 0],
                              [0, 2, 1, 0, 0]])}
-    g_calc = Gamecalc(2, 5, 5, 0, None)
+    g_calc = Gamecalc(2, 5, 5, 0, None, None, None)
     g_calc.player_pos = start_pos
     g_calc.update_player(1, [(4, 0)], [1], None)
     assert compare_positions(goal_pos, g_calc.player_pos)
