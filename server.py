@@ -90,8 +90,7 @@ while restart:
                              extra={"session_uuid": session_uuid})
             else:
                 msg = server.recieve(read)
-                if msg[0] == "ByeBye":
-                    print(f"player {player.get(read, 'viewer')} left")
+                if (msg[0] == "ByeBye") or (msg[0] == "None"):
                     if player.get(read, 'viewer') != "viewer":
                         game.set_eliminated(player[read])
                         game.set_state_for_undo()
@@ -99,17 +98,18 @@ while restart:
                         for write in writable:
                             server.send(write, ("next player", (game.player_to_move(),
                                                                 round_num)))
-                    logger.debug("Recieved ByeBye",
+                    logger.debug("Connection closed",
                                  extra={"session_uuid": session_uuid,
                                         "client_uuid": conn_uuid.pop(read),
                                         "next_player": game.player_to_move(),
                                         "round_num": round_num,
                                         "alive": game.player_alive,
-                                        "counter": game._counter})
+                                        "counter": game._counter,
+                                        "recieved": msg[0]})
                     if player.get(read, 'viewer') == "viewer":
                         print(f"Closed conncetion to spectator at {read}")
                     else:
-                        print(f"Closed conncetion to player {player[read]}")
+                        print(f"Closed conncetion to player {nicknames[player[read]]}")
                     server.close_connection(read)
                 elif msg[0] == "position":
                     msg = msg[1]
@@ -181,7 +181,7 @@ while restart:
             if player.get(error, 'viewer') == "viewer":
                 print(f"Closed conncetion to spectator at {error}")
             else:
-                print(f"Closed conncetion to player {player[error]}")
+                print(f"Closed conncetion to player {nicknames[player[error]]}")
             logger.error("Connection failed!",
                          extra={"session_uuid": session_uuid,
                                 "client_uuid": conn_uuid.pop(error)})

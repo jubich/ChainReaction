@@ -140,11 +140,26 @@ while restart:
                 time.sleep(1)
                 # winner screen
                 break
+            elif msg[0] == None:
+                logger.info("Connection closed by server!",
+                             extra={"client_uuid": client_uuid,
+                                    "session_uuid": session_uuid})
+                run = False
+                network.close()
+                break
             else:
                 logger.warning("Recieved unknown msg",
                                extra={"client_uuid": client_uuid,
                                       "session_uuid": session_uuid,
                                       "recieved": msg})
+        for error in errored:
+            run = False
+            network.close()
+            logger.error("Connection failed!",
+                         extra={"client_uuid": client_uuid,
+                                "session_uuid": session_uuid})
+            break
+
         gameboard.update_window(player_pos, player_turn_num,
                                 handshake_infos["nicknames"], round_num)
 
