@@ -110,6 +110,10 @@ while restart:
                         print(f"Closed conncetion to spectator at {read}")
                     else:
                         print(f"Closed conncetion to player {nicknames[player[read]]}")
+                        player.pop(read)
+                        writable.remove(read)
+                        if len(player) == 1:
+                            game.winner = list(player.values())[0]
                     server.close_connection(read)
                 elif msg[0] == "position":
                     msg = msg[1]
@@ -126,7 +130,6 @@ while restart:
                             pos_l = []
                     else:
                         pos_l = []
-                    msg = (None, None)
                 elif msg[0] == "undo":
                     logger.debug("Recieved undo",
                                  extra={"session_uuid": session_uuid,
@@ -146,7 +149,20 @@ while restart:
                                    extra={"session_uuid": session_uuid,
                                           "client_uuid": conn_uuid[read],
                                           "recieved": msg})
-                    msg = (None, None)
+
+        for error in errored:
+            writable.remove(error)
+            if player.get(error, 'viewer') == "viewer":
+                print(f"Closed conncetion to spectator at {error}")
+            else:
+                print(f"Closed conncetion to player {nicknames[player[error]]}")
+                player.pop(error)
+                if len(player) == 1:
+                    game.winner = list(player.values())[0]
+            logger.error("Connection failed!",
+                         extra={"session_uuid": session_uuid,
+                                "client_uuid": conn_uuid.pop(error)})
+            server.close_connection(error)
 
         if pos_l:
             logger.debug("Make move", extra={"session_uuid": session_uuid,
@@ -156,36 +172,29 @@ while restart:
             game.set_state_for_undo()
             last_round_num = round_num
             game.update_player(game.player_to_move(), pos_l, [1], writable)
-            if game.winner is not None:
-                logger.info("Game finished!",
-                            extra={"session_uuid": session_uuid,
-                                   "winner": game.winner})
-                for write in writable:
-                    server.send(write, ("finished", game.winner))
-                    time.sleep(0.2)
-                    server.close_connection(write)
-                    conn_uuid.pop(write)
-                run = False
-                break
-
             pos_l = []
-            round_num += 1
-            for write in writable:
-                server.send(write, ("next player", (game.player_next_to_move(), round_num)))
-            logger.debug("Next player", extra={"session_uuid": session_uuid,
-                                               "next_player": game.player_next_to_move(),
-                                               "round_num": round_num})
-            game.increase_counter()
 
-        for error in errored:
-            if player.get(error, 'viewer') == "viewer":
-                print(f"Closed conncetion to spectator at {error}")
-            else:
-                print(f"Closed conncetion to player {nicknames[player[error]]}")
-            logger.error("Connection failed!",
-                         extra={"session_uuid": session_uuid,
-                                "client_uuid": conn_uuid.pop(error)})
-            server.close_connection(error)
+            if game.winner is None:
+                round_num += 1
+                for write in writable:
+                    server.send(write, ("next player", (game.player_next_to_move(), round_num)))
+                logger.debug("Next player", extra={"session_uuid": session_uuid,
+                                                   "next_player": game.player_next_to_move(),
+                                                   "round_num": round_num})
+                game.increase_counter()
+
+        if game.winner is not None:
+            logger.info("Game finished!",
+                        extra={"session_uuid": session_uuid,
+                               "winner": game.winner})
+            for write in writable:
+                server.send(write, ("finished", game.winner))
+                time.sleep(0.2)
+                server.close_connection(write)
+                conn_uuid.pop(write)
+            run = False
+            break
+
     logger.debug("Game loop stopped!", extra={"session_uuid": session_uuid})
     restart_gui = server_gui_restart(player_num=s_inputs["player_num"],
                                      width=s_inputs["width"],
