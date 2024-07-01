@@ -57,6 +57,12 @@ class server_gui():
         row += 1
         tk.Button(self._window, text='Continue', command=self._continue).grid(row=row, column=1)
 
+        screen_w = self._window.winfo_screenwidth()
+        screen_h = self._window.winfo_screenheight()
+        width = 300
+        height = 146
+        self._window.geometry(f"{width}x{height}+{int(screen_w/2-width/2)}+{int(screen_h/2-height/2)}")
+
         self._window.mainloop()
 
     def _close_window(self):
@@ -120,6 +126,12 @@ class server_gui_restart():
         row += 1
         tk.Button(self._window, text='Continue', command=self._continue).grid(row=row, column=1)
 
+        screen_w = self._window.winfo_screenwidth()
+        screen_h = self._window.winfo_screenheight()
+        width = 300
+        height = 100
+        self._window.geometry(f"{width}x{height}+{int(screen_w/2-width/2)}+{int(screen_h/2-height/2)}")
+
         self._window.mainloop()
 
     def _close_window(self):
@@ -146,7 +158,8 @@ class server_gui_restart():
 
 
 if __name__ == "__main__":
+    pass
     # s_gui = server_gui()
     # s_inputs = s_gui.get_inputs()
-    s_gui_r = server_gui_restart()
-    s_inputs = s_gui_r.get_inputs()
+    # s_gui_r = server_gui_restart()
+    # s_inputs = s_gui_r.get_inputs()
