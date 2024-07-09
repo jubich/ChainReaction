@@ -11,11 +11,12 @@ import json
 import logging
 import logging.config
 import logging.handlers
+import traceback
 
 
 CONFIG = {
   "version": 1,
-  "disable_existing_loggers": False,
+  "disable_existing_loggers": True,
   "formatters": {
     "simple": {
       "format": "%(levelname)s: %(message)s",
@@ -130,9 +131,22 @@ def setup_logging(filename):
         os.mkdir("logs")
     CONFIG["handlers"]["file"]["filename"] = os.path.join("logs", filename)
     logging.config.dictConfig(CONFIG)
+    logger = logging.getLogger("chainreaction_main_logger")
+    logger.disabled = False
+    return logger
 
 
-logger = logging.getLogger("chainreaction_main_logger")
-
-
-
+def formatted_traceback(err):
+    frame = err.__traceback__
+    formatted_tb_l = traceback.format_tb(frame)
+    frame = frame.tb_next
+    tb_list = []
+    len_tb_l = len(formatted_tb_l)
+    for num, formatted_tb in enumerate(formatted_tb_l):
+        tb_list.append(formatted_tb)
+        if (len_tb_l-num <= 3) and (len_tb_l-num > 1):
+            tb_list.append(f"Locals in {frame.tb_frame.f_code.co_name}(): {frame.tb_frame.f_locals}\n")
+        if frame is not None:
+            frame = frame.tb_next
+    tb_list.append(f"{err.__class__.__name__}: {err.args}")
+    return "".join(tb_list)
