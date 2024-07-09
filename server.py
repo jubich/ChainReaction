@@ -171,7 +171,7 @@ while restart:
                                              "move": pos_l})
             game.set_state_for_undo()
             last_round_num = round_num
-            game.update_player(game.player_to_move(), pos_l, [1], writable)
+            game.update_player(game.player_to_move(), pos_l, [1], writable, round_num)
             pos_l = []
 
             if game.winner is None:
@@ -186,9 +186,10 @@ while restart:
         if game.winner is not None:
             logger.info("Game finished!",
                         extra={"session_uuid": session_uuid,
-                               "winner": game.winner})
+                               "winner": game.winner,
+                               "time_line": game.time_line})
             for write in writable:
-                server.send(write, ("finished", game.winner))
+                server.send(write, ("finished", (game.winner, game.time_line)))
                 time.sleep(0.2)
                 server.close_connection(write)
                 conn_uuid.pop(write)

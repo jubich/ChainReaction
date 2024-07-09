@@ -22,6 +22,7 @@ class Gamecalc():
         self._counter = 0
         self._create_boards()
         self.winner = None
+        self.time_line = {}
 
     def _create_boards(self):
         self.player_pos = {}
@@ -36,7 +37,7 @@ class Gamecalc():
         self.last_player_alive = self.player_alive
         self._last_counter = self._counter
 
-    def update_player(self, player, pos_l, num_l, connections):
+    def update_player(self, player, pos_l, num_l, connections, round_num):
         # pos + num as list
         chain_reaction = []
         for pos, num in zip(pos_l, num_l):
@@ -50,6 +51,14 @@ class Gamecalc():
             if self.player_pos[player][row][column] >= max_num:
                 self._update_chain_board(row, column)
                 chain_reaction.append((pos, max_num))
+
+        if self.time_line.get(round_num, None) is None:
+            self.time_line[round_num] = []
+        reaction_list = []
+        for num in range(self.player_num):
+            reaction_list.append(np.sum(self.player_pos[num]))
+        self.time_line[round_num].append(reaction_list)
+
         if connections is not None:
             for connection in connections:
                 self.network.send(connection, ("positions", self.player_pos))
@@ -68,7 +77,7 @@ class Gamecalc():
                 row, column = pos
                 self.player_pos[player][row][column] -= max_num
             self._clear_substract_board()
-            self._clear_chain_board(player, connections)
+            self._clear_chain_board(player, connections, round_num)
             alive = self.get_alive()
             if len(alive) == 1:
                 self.winner = alive[0]
@@ -108,7 +117,7 @@ class Gamecalc():
             self.player_pos[num] -= self.substract_board[num]
             self.substract_board[num] = np.zeros((self.height_num, self.width_num), dtype=int)
 
-    def _clear_chain_board(self, player, connections):
+    def _clear_chain_board(self, player, connections, round_num):
         pos_l = []
         num_l = []
         for num_r, row in enumerate(self.chain_board):
@@ -117,7 +126,7 @@ class Gamecalc():
                     pos_l.append((num_r, num_c))
                     num_l.append(column)
         self.chain_board = np.zeros((self.height_num, self.width_num), dtype=int)
-        self.update_player(player, pos_l, num_l, connections)
+        self.update_player(player, pos_l, num_l, connections, round_num)
 
     def _check_elimination(self):
         for num in range(self.player_num):
@@ -179,6 +188,7 @@ class Gamecalc():
         self._last_counter = copy.deepcopy(self._counter)
 
     def undo(self, connections, round_num):
+        self.time_line[round_num] = None
         self.player_pos = copy.deepcopy(self.last_player_pos)
         self.player_alive = copy.deepcopy(self.last_player_alive)
         self._counter = copy.deepcopy(self._last_counter)

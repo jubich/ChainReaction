@@ -12,6 +12,8 @@ import uuid
 
 import numpy as np
 import pygame
+import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
 
 from network import Network_c
 from player import Player
@@ -19,6 +21,7 @@ from game import Gameboard
 from client_gui import client_gui, client_quit_gui, client_gui_restart
 from configfile import load_config, get_config, get_config_none, DEFAULTS
 from loggingsetup import logger, setup_logging
+
 
 pygame.init()
 client_uuid = str(uuid.uuid4())  # to differentiate users
@@ -49,6 +52,7 @@ c_inputs["nickname"] = c_inputs["nickname"] if not len(c_inputs["nickname"].stri
 restart = True
 session_uuid = None
 while restart:
+    finish_message = None
     if session_uuid is None:
         logger.debug("restart", extra={"client_uuid": client_uuid})
     else:
@@ -135,10 +139,10 @@ while restart:
                 logger.debug("Recieved finished",
                              extra={"client_uuid": client_uuid,
                                     "session_uuid": session_uuid,
-                                    "winner": msg[1]})
-                print(f"winner: {handshake_infos['nicknames'][msg[1]]}")
-                time.sleep(1)
-                # winner screen
+                                    "winner": msg[1][0],
+                                    "time_line": msg[1][1]})
+                print(f"winner: {handshake_infos['nicknames'][msg[1][0]]}")
+                finish_message = msg[1]
                 break
             elif msg[0] == None:
                 logger.info("Connection closed by server!",
@@ -193,7 +197,10 @@ while restart:
     logger.debug("Game loop stopped!", extra={"client_uuid": client_uuid,
                                               "session_uuid": session_uuid})
     pygame.display.quit()
-    restart_gui = client_gui_restart(c_inputs["nickname"])
+    restart_gui = client_gui_restart(c_inputs["nickname"],
+                                     player_colors, PLAYER_NUM,
+                                     handshake_infos['nicknames'],
+                                     finish_message)
     restart_input = restart_gui.get_inputs()
     c_inputs["nickname"] = restart_input["nickname"]
 
