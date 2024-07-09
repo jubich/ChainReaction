@@ -90,7 +90,7 @@ while restart:
                              extra={"session_uuid": session_uuid})
             else:
                 msg = server.recieve(read)
-                if (msg[0] == "ByeBye") or (msg[0] == "None"):
+                if (msg[0] == "ByeBye") or (msg[0] == None):
                     if player.get(read, 'viewer') != "viewer":
                         game.set_eliminated(player[read])
                         game.set_state_for_undo()

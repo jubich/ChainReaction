@@ -17,7 +17,7 @@ matplotlib.use('Agg')
 
 
 class client_gui():
-    def __init__(self, nickname=None, ip=None, port=None):
+    def __init__(self, nickname=None, ip=None, port=None, player=True):
         self._nickname = nickname
         self._ip = ip
         self._port = port
@@ -25,6 +25,8 @@ class client_gui():
         self._window = tk.Tk()
         self._window.title('Client GUI')
         self._window.protocol("WM_DELETE_WINDOW", self._close_window)
+
+        self.player = player
 
         row = 0
         tk.Label(self._window, text="Nickname:").grid(row=row, column=0)
@@ -48,12 +50,18 @@ class client_gui():
             self.write_entry_txt(self._port_box, self._port)
 
         row += 1
+        self.spectator_cbutton = tk.Checkbutton(self._window, text='Spectator', command=self._set_spectator)
+        self.spectator_cbutton.grid(row=row, column=1)
+        if not self.player:
+            self.spectator_cbutton.select()
+
+        row += 1
         tk.Button(self._window, text='Continue', command=self._continue).grid(row=row, column=1)
 
         screen_w = self._window.winfo_screenwidth()
         screen_h = self._window.winfo_screenheight()
         width = 370
-        height = 100
+        height = 125
         self._window.geometry(f"{width}x{height}+{int(screen_w/2-width/2)}+{int(screen_h/2-height/2)}")
 
         self._window.mainloop()
@@ -75,7 +83,11 @@ class client_gui():
         inputs["nickname"] = self._nickname
         inputs["ip"] = self._ip
         inputs["port"] = self._port
+        inputs["player"] = self.player
         return inputs
+
+    def _set_spectator(self):
+        self.player = not self.player
 
     @staticmethod
     def write_entry_txt(entry, txt):
@@ -84,7 +96,7 @@ class client_gui():
 
 
 class client_gui_restart():
-    def __init__(self, nickname, player_colors, player_num,
+    def __init__(self, nickname, player, player_colors, player_num,
                  nicknames, finish_message):
         self._nickname = nickname
 
@@ -92,11 +104,19 @@ class client_gui_restart():
         self._window.title('Client GUI')
         self._window.protocol("WM_DELETE_WINDOW", self._close_window)
 
+        self.player = player
+
         row = 0
         tk.Label(self._window, text="Nickname:").grid(row=row, column=0)
         self._nickname_box = tk.Entry(self._window, width=35)
         self._nickname_box.grid(row=row, column=1)
         self.write_entry_txt(self._nickname_box, self._nickname)
+
+        row += 1
+        self.spectator_cbutton = tk.Checkbutton(self._window, text='Spectator', command=self._set_spectator)
+        self.spectator_cbutton.grid(row=row, column=1)
+        if not self.player:
+            self.spectator_cbutton.select()
 
         row += 1
         tk.Button(self._window, text='Continue', command=self._continue).grid(row=row, column=1)
@@ -150,7 +170,11 @@ class client_gui_restart():
         if len(self._nickname) > 20:
             self._nickname = self._nickname[:20]
         inputs["nickname"] = self._nickname
+        inputs["player"] = self.player
         return inputs
+
+    def _set_spectator(self):
+        self.player = not self.player
 
     @staticmethod
     def write_entry_txt(entry, txt):
@@ -215,6 +239,7 @@ class client_quit_gui():
         self._window = tk.Tk()
         self._window.title('Quit')
         self._window.protocol("WM_DELETE_WINDOW", self._close_window)
+        self.quit = False
 
         row = 0
         tk.Label(self._window, text="Do you really want to quit?").grid(row=row, column=0)

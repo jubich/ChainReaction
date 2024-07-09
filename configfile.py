@@ -16,6 +16,7 @@ DEFAULTS = {"info": "Changes in '[DEFAULT]' will be ignored. Changes should be d
             "client.nickname": "'None' -> 'user input'",
             "client.ip": "'None' -> 'user input'",
             "client.port": "5555",
+            "client.be_player": "True",
             "server.reaction_time_step": "0.5",
             "server.player_number": "'None' -> 'user input'",
             "server.gameboard_height": "'None' -> 'user input'",
@@ -32,7 +33,8 @@ CLIENT = {"fps_limit": "60",
                                 (255, 178, 102), (51, 102, 0), (204, 0, 102)]),
           "nickname": "None",
           "ip": "None",
-          "port": "5555"}
+          "port": "5555",
+          "be_player": "True"}
 
 SERVER = {"reaction_time_step": "0.5",
           "player_number": "None",
@@ -67,3 +69,9 @@ def get_config_none(config, default, section, key, _type):
     if "none" in value.lower():
         return None
     return _type(value)
+
+def get_config_bool(config, default, section, key):
+    value = get_config(config, default, section, key)
+    BOOLEAN_STATES = {'1': True, 'yes': True, 'true': True, 'on': True,
+                      '0': False, 'no': False, 'false': False, 'off': False}
+    return BOOLEAN_STATES[value.lower()]

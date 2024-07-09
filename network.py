@@ -74,7 +74,7 @@ class Network_c:
                 if msg[0] == "handshake":
                     return msg[1]
                 else:
-                    self.logger.warning("Unkown message",
+                    self.logger.warning("Handshake, Unkown message",
                                         extra={"client_uuid": self.client_uuid,
                                                "recieved": msg})
             if errored:
@@ -186,7 +186,7 @@ class Network_s:
                             spectators.remove(read)
                         self.close_connection(read)
                     else:
-                        self.logger.warning("Unkown message",
+                        self.logger.warning("Handshake, Unkown message",
                                             extra={"session_uuid": self.session_uuid,
                                                    "client_uuid": conn_uuid[read],
                                                    "recieved": msg})
@@ -230,8 +230,9 @@ class Network_s:
                                      "number": num})
 
         for spectator in spectators:
+            self.send(spectator, ("handshake", handshake_dict))
             self.send(spectator, ("viewer", None))
-            self.logger.debug("Send spectator",
+            self.logger.debug("Send handshake and spectator",
                               extra={"session_uuid": self.session_uuid,
                                      "client_uuid": conn_uuid[conn]})
         return nicknames_dict, player_dict, spectators, handshake_dict, conn_uuid

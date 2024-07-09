@@ -19,7 +19,7 @@ from network import Network_c
 from player import Player
 from game import Gameboard
 from client_gui import client_gui, client_quit_gui, client_gui_restart
-from configfile import load_config, get_config, get_config_none, DEFAULTS
+from configfile import load_config, get_config, get_config_none, get_config_bool, DEFAULTS
 from loggingsetup import logger, setup_logging
 
 
@@ -38,6 +38,7 @@ player_colors = ast.literal_eval(get_config(config, DEFAULTS, "CLIENT", "player_
 nickname = get_config_none(config, DEFAULTS, "CLIENT", "nickname", str)
 ip = get_config_none(config, DEFAULTS, "CLIENT", "ip", str)
 port = int(get_config(config, DEFAULTS, "SERVER", "port"))
+be_player = get_config_bool(config, DEFAULTS, "CLIENT", "be_player")
 logger.debug("Config loaded", extra={"client_uuid": client_uuid,
                                      "fps_limit": fps_limit,
                                      "box_min_size": box_min_size,
@@ -45,7 +46,7 @@ logger.debug("Config loaded", extra={"client_uuid": client_uuid,
 
 
 # get user inputs via gui
-c_gui = client_gui(nickname=nickname, ip=ip, port=port)
+c_gui = client_gui(nickname=nickname, ip=ip, port=port, player=be_player)
 c_inputs = c_gui.get_inputs()
 c_inputs["nickname"] = c_inputs["nickname"] if not len(c_inputs["nickname"].strip()) == 0 else client_uuid[:20]
 
@@ -68,7 +69,7 @@ while restart:
     network.setblocking(False)
     logger.info("Connected!", extra={"client_uuid": client_uuid})
 
-    handshake_infos = network.handshake(c_inputs["nickname"])
+    handshake_infos = network.handshake(c_inputs["nickname"], c_inputs["player"])
     PLAYER_NUM = handshake_infos["player_num"]
     WIDTH_NUM = handshake_infos["width"]
     HEIGHT_NUM = handshake_infos["height"]
@@ -198,11 +199,13 @@ while restart:
                                               "session_uuid": session_uuid})
     pygame.display.quit()
     restart_gui = client_gui_restart(c_inputs["nickname"],
+                                     c_inputs["player"],
                                      player_colors, PLAYER_NUM,
                                      handshake_infos['nicknames'],
                                      finish_message)
     restart_input = restart_gui.get_inputs()
     c_inputs["nickname"] = restart_input["nickname"]
+    c_inputs["player"] = restart_input["player"]
 
 pygame.quit()
 logger.debug("Client stopped!", extra={"client_uuid": client_uuid,
