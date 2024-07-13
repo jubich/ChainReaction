@@ -176,13 +176,7 @@ class client_gui_restart():
     def _set_spectator(self):
         self.player = not self.player
 
-    @staticmethod
-    def write_entry_txt(entry, txt):
-        entry.delete(0, tk.END)
-        entry.insert(0, txt)
-
-    @staticmethod
-    def make_plots(fig, time_line, player_colors, player_num, nicknames):
+    def make_plots(self, fig, time_line, player_colors, player_num, nicknames):
         x_list = []
         y_lists = {}
         y_lists1 = {}
@@ -201,13 +195,14 @@ class client_gui_restart():
                     y += player_count
                     y_lists1[num].append(y)
 
+        major_tick, minor_tick = self.get_spacing(round_num)
         axs1 = fig.add_subplot(2, 1, 1)
-        axs1.xaxis.set_major_locator(ticker.MultipleLocator(5))
-        axs1.xaxis.set_minor_locator(ticker.MultipleLocator(1))
+        axs1.xaxis.set_major_locator(ticker.MultipleLocator(major_tick))
+        axs1.xaxis.set_minor_locator(ticker.MultipleLocator(minor_tick))
         axs1.set_ylim([0, round_num+2])
         axs1.set_xlim([0, round_num+1])
         axs1.plot([0, round_num+1], [1, round_num+2], color="black", linestyle="--")
-        for num in list(range(0, 39+2, 5)):
+        for num in list(range(0, round_num+2, major_tick)):
             axs1.vlines(num, 0, num+1, color="lightgray", linestyle="--")
         for num in range(player_num):
             color = player_colors[num % len(player_colors)]
@@ -217,12 +212,12 @@ class client_gui_restart():
         axs1.legend(loc="upper left")
 
         axs2 = fig.add_subplot(2, 1, 2)
-        axs2.xaxis.set_major_locator(ticker.MultipleLocator(5))
-        axs2.xaxis.set_minor_locator(ticker.MultipleLocator(1))
+        axs2.xaxis.set_major_locator(ticker.MultipleLocator(major_tick))
+        axs2.xaxis.set_minor_locator(ticker.MultipleLocator(minor_tick))
         axs2.set_ylim([0, round_num+2])
         axs2.set_xlim([0, round_num+1])
         axs2.plot([0, round_num+1], [1, round_num+2], color="black", linestyle="--")
-        for num in list(range(0, round_num+2, 5)):
+        for num in list(range(0, round_num+2, major_tick)):
             axs2.vlines(num, 0, num+1, color="lightgray", linestyle="--")
         y_lists1[-1] = np.zeros(len(x_list))
         for num in range(player_num):
@@ -231,6 +226,19 @@ class client_gui_restart():
                               color=(color[0]/255, color[1]/255, color[2]/255),
                               label=nicknames[num])
         axs2.legend(loc="upper left")
+
+    @staticmethod
+    def write_entry_txt(entry, txt):
+        entry.delete(0, tk.END)
+        entry.insert(0, txt)
+
+    @staticmethod
+    def get_spacing(time_line_len):
+        if not (time_line_len % 50 == 0):
+            time_line_len += 50 - (time_line_len % 50)
+        major_tick = int(time_line_len / 10)
+        minor_tick = int(major_tick / 5)
+        return major_tick, minor_tick
 
 
 class client_quit_gui():
