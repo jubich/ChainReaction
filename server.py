@@ -15,7 +15,7 @@ import uuid
 from network import Network_s
 from game_rules import Gamecalc
 from server_gui import server_gui, server_gui_restart
-from configfile import load_config, get_config, get_config_none, DEFAULTS
+from configfile import load_config_s
 from loggingsetup import setup_logging, formatted_traceback
 
 session_uuid = str(uuid.uuid4())  # to differentiate sessions
@@ -24,32 +24,23 @@ logger.debug("New session started!", extra={"session_uuid": session_uuid})
 
 try:
     try:
-        # load config
-        config = load_config()
-        player_num = get_config_none(config, DEFAULTS, "SERVER", "player_number", int)
-        width = get_config_none(config, DEFAULTS, "SERVER", "gameboard_width", int)
-        height = get_config_none(config, DEFAULTS, "SERVER", "gameboard_height", int)
-        port = int(get_config(config, DEFAULTS, "SERVER", "port"))
-        if get_config_none(config, DEFAULTS, "SERVER", "ip", str) is None:
-            ip = socket.gethostbyname(socket.gethostname())
+        config = load_config_s()
+        if config["ip"] is None:
+            config["ip"] = socket.gethostbyname(socket.gethostname())
             logger.debug("IP from socket", extra={"session_uuid": session_uuid})
-        else:
-            ip = get_config(config, DEFAULTS, "SERVER", "ip")
-        reaction_time_step = float(get_config(config, DEFAULTS, "SERVER", "reaction_time_step"))
     except Exception as err:
         logger.error("Error in loading config!",
                      extra={"session_uuid": session_uuid,
                             "traceback": formatted_traceback(err)})
         sys.exit()
-
     logger.debug("Config loaded", extra={"session_uuid": session_uuid,
-                                         "reaction_time_step": reaction_time_step})
+                                         "config": config})
 
     try:
         # get user inputs via gui
-        s_gui = server_gui(player_num=player_num, width=width, height=height,
-                           ip=ip, port=port)
-
+        s_gui = server_gui(player_num=config["player_num"],
+                           width=config["width"], height=config["height"],
+                           ip=config["ip"], port=config["port"])
         s_inputs = s_gui.get_inputs()
     except Exception as err:
         logger.error("Error in gui input!",
@@ -83,8 +74,9 @@ try:
 
         run = True
 
-        game = Gamecalc(s_inputs["player_num"], s_inputs["width"], s_inputs["height"],
-                        reaction_time_step, server, logger, session_uuid)
+        game = Gamecalc(s_inputs["player_num"], s_inputs["width"],
+                        s_inputs["height"], config["reaction_time_step"],
+                        server, logger, session_uuid)
 
         round_num = 0
         last_round_num = round_num

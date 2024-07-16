@@ -7,8 +7,6 @@
 import sys
 import time
 import select
-import socket
-import ast
 import uuid
 
 import numpy as np
@@ -17,7 +15,7 @@ import pygame
 from network import Network_c
 from game import Gameboard
 from client_gui import client_gui, client_quit_gui, client_gui_restart
-from configfile import load_config, get_config, get_config_none, get_config_bool, DEFAULTS
+from configfile import load_config_c
 from loggingsetup import setup_logging, formatted_traceback
 
 
@@ -27,36 +25,19 @@ logger = setup_logging("client.log.jsonl")
 logger.debug("New client started!", extra={"client_uuid": client_uuid})
 try:
     try:
-        # load config
-        config = load_config()
-        fps_limit = int(get_config(config, DEFAULTS, "CLIENT", "fps_limit"))
-        box_min_size = int(get_config(config, DEFAULTS, "CLIENT", "box_min_size"))
-        box_line_width = int(get_config(config, DEFAULTS, "CLIENT", "box_line_width"))
-        board_color = ast.literal_eval(get_config(config, DEFAULTS, "CLIENT", "board_color"))
-        pygame.Color(board_color)  # tests for valid color
-        player_colors = ast.literal_eval(get_config(config, DEFAULTS, "CLIENT", "player_colors"))
-        for player_color in player_colors:
-            pygame.Color(player_color)  # tests for valid player colors
-        nickname = get_config_none(config, DEFAULTS, "CLIENT", "nickname", str)
-        if nickname is not None:
-            nickname.encode("utf-8", "strict")  # tests for valid uft-8 name
-        ip = get_config_none(config, DEFAULTS, "CLIENT", "ip", str)
-        socket.inet_pton(socket.AF_INET, ip)  # tests for valid ip4
-        port = int(get_config(config, DEFAULTS, "CLIENT", "port"))
-        be_player = get_config_bool(config, DEFAULTS, "CLIENT", "be_player")
+        config = load_config_c()
     except Exception as err:
         logger.error("Error in loading config!",
                      extra={"client_uuid": client_uuid,
                             "traceback": formatted_traceback(err)})
         sys.exit()
-
     logger.debug("Config loaded", extra={"client_uuid": client_uuid,
-                                         "fps_limit": fps_limit,
-                                         "box_min_size": box_min_size,
-                                         "box_line_width": box_line_width})
+                                         "config": config})
+
     try:
         # get user inputs via gui
-        c_gui = client_gui(nickname=nickname, ip=ip, port=port, player=be_player)
+        c_gui = client_gui(nickname=config["nickname"], ip=config["ip"],
+                           port=config["port"], player=config["be_player"])
         c_inputs = c_gui.get_inputs()
         c_inputs["nickname"] = c_inputs["nickname"] if not len(c_inputs["nickname"].strip()) == 0 else client_uuid[:20]
     except Exception as err:
@@ -105,8 +86,9 @@ try:
             player_pos[num] = np.zeros((HEIGHT_NUM, WIDTH_NUM), dtype=int)
         run = True
 
-        gameboard = Gameboard(box_min_size, box_line_width, PLAYER_NUM, board_color,
-                              WIDTH_NUM, HEIGHT_NUM, player_colors)
+        gameboard = Gameboard(config["box_min_size"], config["box_line_width"],
+                              PLAYER_NUM, config["board_color"], WIDTH_NUM,
+                              HEIGHT_NUM, config["player_colors"])
 
         clock = pygame.time.Clock()
 
@@ -116,7 +98,7 @@ try:
         while run:
             # game loop
             pygame.display.update()
-            clock.tick(fps_limit)
+            clock.tick(config["fps_limit"])
             connection = [network.client]
             readable, writable, errored = select.select(connection, connection,
                                                         connection, 0.5)
@@ -217,7 +199,8 @@ try:
         try:
             restart_gui = client_gui_restart(c_inputs["nickname"],
                                              c_inputs["player"],
-                                             player_colors, PLAYER_NUM,
+                                             config["player_colors"],
+                                             PLAYER_NUM,
                                              handshake_infos['nicknames'],
                                              finish_message)
             restart_input = restart_gui.get_inputs()
