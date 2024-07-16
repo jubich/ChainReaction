@@ -11,6 +11,8 @@ import pickle
 import select
 import random
 
+from loggingsetup import formatted_traceback
+
 HEADERSIZE = 20
 
 
@@ -27,17 +29,23 @@ class Network_c:
         try:
             self.client.connect(self.addr)
             return True
-        except Exception as e:
+        except OSError as err:
             self.logger.error("Connection failed!",
                               extra={"client_uuid": self.client_uuid,
-                                     "e_args": e.args,
-                                     "error_type": type(e)})
+                                     "traceback": formatted_traceback(err)})
             return False
 
     def send(self, data):
         msg = pickle.dumps(data)
         msg = bytes(f"{len(msg):<{HEADERSIZE}}", "utf-8") + msg
-        self.client.sendall(msg)
+        try:
+            self.client.sendall(msg)
+        except OSError as err:
+            self.logger.error("Error while sending!",
+                              extra={"session_uuid": self.client_uuid,
+                                     "traceback": formatted_traceback(err)})
+            self.close()
+            sys.exit()
 
     def recieve(self):
         msg = self.client.recv(HEADERSIZE).decode("utf-8")
@@ -48,7 +56,12 @@ class Network_c:
         return (None, None)
 
     def close(self):
-        self.client.close()
+        try:
+            self.client.close()
+        except OSError as err:
+            self.logger.error("Error while closing connection!",
+                              extra={"session_uuid": self.client_uuid,
+                                     "traceback": formatted_traceback(err)})
 
     def setblocking(self, flag):
         self.client.setblocking(flag)
@@ -104,11 +117,10 @@ class Network_s:
             self.server.bind(self.addr)
             self.server.listen(listen)
             return True
-        except Exception as e:
+        except OSError as err:
             self.logger.error("Failed binding!",
                               extra={"session_uuid": self.session_uuid,
-                                     "e_args": e.args,
-                                     "error_type": type(e)})
+                                     "traceback": formatted_traceback(err)})
             return False
 
     def accept_connection(self, blocking_flag):
@@ -120,7 +132,13 @@ class Network_s:
     def send(self, connection, data):
         msg = pickle.dumps(data)
         msg = bytes(f"{len(msg):<{HEADERSIZE}}", "utf-8") + msg
-        connection.sendall(msg)
+        try:
+            connection.sendall(msg)
+        except OSError as err:
+            self.logger.error("Error while sending!",
+                              extra={"session_uuid": self.session_uuid,
+                                     "traceback": formatted_traceback(err)})
+            self.close_connection(connection)
 
     def recieve(self, connection):
         msg = connection.recv(HEADERSIZE).decode("utf-8")
@@ -132,7 +150,12 @@ class Network_s:
 
     def close_connection(self, connection):
         self.connections.remove(connection)
-        connection.close()
+        try:
+            connection.close()
+        except OSError as err:
+            self.logger.error("Error while closing connection!",
+                              extra={"session_uuid": self.session_uuid,
+                                     "traceback": formatted_traceback(err)})
 
     def setblocking(self, flag):
         self.server.setblocking(flag)

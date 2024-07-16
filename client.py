@@ -173,13 +173,13 @@ try:
                                    extra={"client_uuid": client_uuid,
                                           "session_uuid": session_uuid,
                                           "recieved": msg})
-            for error in errored:
+            if errored:
                 run = False
                 network.close()
                 logger.error("Connection failed!",
                              extra={"client_uuid": client_uuid,
                                     "session_uuid": session_uuid})
-                break
+                sys.exit()
 
             gameboard.update_window(player_pos, player_turn_num,
                                     handshake_infos["nicknames"], round_num)
