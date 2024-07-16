@@ -211,6 +211,28 @@ class Gameboard():
         text_surface = font.render("Undo!", False, (255, 255, 255))
         self.window.blit(text_surface, (self.curr_board_w + 10, h_pos))
 
+    def mouse_pos(self, mouse_x, mouse_y):
+        column = None
+        row = None
+        for num_r in range(self.height_num):
+            if mouse_y <= self.h_lines[num_r][1]:
+                row = num_r
+                break
+        for num_c in range(self.width_num):
+            if mouse_x <= self.v_lines[num_c][0]:
+                column = num_c
+                break
+        if (column and row) is not None:
+            return ("position", (row, column))
+        button_w_min = self._button_rect[0]
+        button_w_max = self._button_rect[0] + self._button_rect[2]
+        button_h_min = self._button_rect[1]
+        button_h_max = self._button_rect[1] + self._button_rect[3]
+        if (mouse_x >= button_w_min) and (mouse_x <= button_w_max):
+            if (mouse_y >= button_h_min) and (mouse_y <= button_h_max):
+                return ("undo", None)
+        return None
+
     @staticmethod
     def get_value_in_range(min_v, max_v, value):
         if value < min_v:
@@ -218,43 +240,3 @@ class Gameboard():
         if value > max_v:
             return max_v
         return value
-
-
-if __name__ == '__main__':
-    # board test
-    pygame.init()
-    g = Gameboard(5, 5, 3)
-    nicknames = {0:"hans", 1:"peter", 2:"hp"}
-    player_pos = {1:np.array([[0, 0, 0, 0, 0],
-                              [0, 0, 0, 0, 0],
-                              [0, 0, 2, 0, 0],
-                              [0, 0, 0, 0, 0],
-                              [0, 0, 0, 0, 0]]),
-                  2:np.array([[0, 0, 0, 0, 0],
-                              [0, 0, 0, 3, 0],
-                              [0, 0, 0, 0, 0],
-                              [0, 0, 0, 0, 0],
-                              [0, 0, 0, 0, 0]]),
-                  0:np.array([[0, 0, 0, 0, 1],
-                              [0, 0, 0, 0, 0],
-                              [0, 0, 0, 0, 0],
-                              [0, 0, 0, 0, 0],
-                              [0, 0, 0, 0, 0]])}
-    g._draw_bar(player_pos, nicknames)
-    g._write_infos(player_pos, nicknames, 5, nicknames[0])
-    clock = pygame.time.Clock()
-    ii = 0
-    while True:
-        clock.tick(60)
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-            if event.type == pygame.VIDEORESIZE:
-                g.rescale_window(event.w, event.h, player_pos, ii, nicknames, ii)
-                g.width = event.w
-                g.height = event.h
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                ii += 1
-                g.update_window(player_pos, ii, nicknames, ii)
-        pygame.display.update()
-    pygame.quit()

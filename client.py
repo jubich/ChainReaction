@@ -15,7 +15,6 @@ import numpy as np
 import pygame
 
 from network import Network_c
-from player import Player
 from game import Gameboard
 from client_gui import client_gui, client_quit_gui, client_gui_restart
 from configfile import load_config, get_config, get_config_none, get_config_bool, DEFAULTS
@@ -108,7 +107,6 @@ try:
 
         gameboard = Gameboard(box_min_size, box_line_width, PLAYER_NUM, board_color,
                               WIDTH_NUM, HEIGHT_NUM, player_colors)
-        player = Player(gameboard)
 
         clock = pygame.time.Clock()
 
@@ -204,7 +202,7 @@ try:
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     if event.button == 1:
                         mouse_x, mouse_y = pygame.mouse.get_pos()
-                        command = player.mouse_pos(mouse_x, mouse_y)
+                        command = gameboard.mouse_pos(mouse_x, mouse_y)
                         if command is not None:
                             network.send(command)
                         logger.debug("Mouse click", extra={"client_uuid": client_uuid,
