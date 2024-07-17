@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import sys
+import socket
 
 import tkinter as tk
 
@@ -74,6 +75,7 @@ class server_gui():
         self._width = int(self._width_box.get())
         self._height = int(self._height_box.get())
         self._ip = self._ip_box.get()
+        socket.inet_pton(socket.AF_INET, self._ip)  # tests for valid ip4
         self._port = int(self._port_box.get())
         self._window.destroy()
 
@@ -144,12 +146,11 @@ class server_gui_restart():
         self._height = int(self._height_box.get())
         self._window.destroy()
 
-    def get_inputs(self):
-        inputs = {}
-        inputs["player_num"] = self._player_num
-        inputs["width"] = self._width
-        inputs["height"] = self._height
-        return inputs
+    def get_inputs(self, s_inputs):
+        s_inputs["player_num"] = self._player_num
+        s_inputs["width"] = self._width
+        s_inputs["height"] = self._height
+        return s_inputs
 
     @staticmethod
     def write_entry_txt(entry, txt):

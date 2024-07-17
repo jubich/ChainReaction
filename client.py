@@ -24,6 +24,7 @@ client_uuid = str(uuid.uuid4())  # to differentiate users
 logger = setup_logging("client.log.jsonl")
 logger.debug("New client started!", extra={"client_uuid": client_uuid})
 try:
+    # load config
     try:
         config = load_config_c()
     except Exception as err:
@@ -34,24 +35,25 @@ try:
     logger.debug("Config loaded", extra={"client_uuid": client_uuid,
                                          "config": config})
 
+    # get user input via gui
     try:
-        # get user inputs via gui
         c_gui = client_gui(nickname=config["nickname"], ip=config["ip"],
-                           port=config["port"], player=config["be_player"])
-        c_inputs = c_gui.get_inputs()
-        c_inputs["nickname"] = c_inputs["nickname"] if not len(c_inputs["nickname"].strip()) == 0 else client_uuid[:20]
+                           port=config["port"], be_player=config["be_player"])
+        c_inputs = c_gui.get_inputs(client_uuid)
     except Exception as err:
         logger.exception("Error in gui input!",
                          extra={"client_uuid": client_uuid,
                                 "traceback": formatted_traceback(err)})
         sys.exit()
+    logger.debug("Inputs", extra={"client_uuid": client_uuid,
+                                  "be_player": c_inputs["be_player"]})
 
     restart = True
     session_uuid = None
     while restart:
         finish_message = None
         if session_uuid is None:
-            logger.debug("restart", extra={"client_uuid": client_uuid})
+            logger.debug("start", extra={"client_uuid": client_uuid})
         else:
             logger.debug("restart", extra={"client_uuid": client_uuid,
                                            "session_uuid": session_uuid})
@@ -65,7 +67,7 @@ try:
         network.setblocking(False)
         logger.info("Connected!", extra={"client_uuid": client_uuid})
 
-        handshake_infos = network.handshake(c_inputs["nickname"], c_inputs["player"])
+        handshake_infos = network.handshake(c_inputs["nickname"], c_inputs["be_player"])
         PLAYER_NUM = handshake_infos["player_num"]
         WIDTH_NUM = handshake_infos["width"]
         HEIGHT_NUM = handshake_infos["height"]
@@ -196,19 +198,19 @@ try:
                                                   "session_uuid": session_uuid})
         pygame.display.quit()
 
+        # get user input via gui
         try:
             restart_gui = client_gui_restart(c_inputs["nickname"],
-                                             c_inputs["player"],
+                                             c_inputs["be_player"],
                                              config["player_colors"],
                                              PLAYER_NUM,
                                              handshake_infos['nicknames'],
                                              finish_message)
-            restart_input = restart_gui.get_inputs()
-            c_inputs["nickname"] = restart_input["nickname"]
-            c_inputs["player"] = restart_input["player"]
+            c_inputs = restart_gui.get_inputs(c_inputs, client_uuid)
         except Exception as err:
             logger.exception("Error in restart gui input!",
                              extra={"client_uuid": client_uuid,
+                                    "be_player": c_inputs["be_player"],
                                     "traceback": formatted_traceback(err)})
             sys.exit()
 

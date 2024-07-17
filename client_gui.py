@@ -2,11 +2,11 @@
 # -*- coding: utf-8 -*-
 
 import sys
+import socket
 
 import tkinter as tk
 import numpy as np
 import matplotlib
-import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
@@ -17,7 +17,7 @@ matplotlib.use('Agg')
 
 
 class client_gui():
-    def __init__(self, nickname=None, ip=None, port=None, player=True):
+    def __init__(self, nickname=None, ip=None, port=None, be_player=True):
         self._nickname = nickname
         self._ip = ip
         self._port = port
@@ -26,7 +26,7 @@ class client_gui():
         self._window.title('Client GUI')
         self._window.protocol("WM_DELETE_WINDOW", self._close_window)
 
-        self.player = player
+        self.be_player = be_player
 
         row = 0
         tk.Label(self._window, text="Nickname:").grid(row=row, column=0)
@@ -52,7 +52,7 @@ class client_gui():
         row += 1
         self.spectator_cbutton = tk.Checkbutton(self._window, text='Spectator', command=self._set_spectator)
         self.spectator_cbutton.grid(row=row, column=1)
-        if not self.player:
+        if not self.be_player:
             self.spectator_cbutton.select()
 
         row += 1
@@ -71,23 +71,25 @@ class client_gui():
         sys.exit()
 
     def _continue(self):
-        self._nickname = self._nickname_box.get()
+        self._nickname = self._nickname_box.get()[:20]
         self._ip = self._ip_box.get()
+        socket.inet_pton(socket.AF_INET, self._ip)  # tests for valid ip4
         self._port = int(self._port_box.get())
         self._window.destroy()
 
-    def get_inputs(self):
+    def get_inputs(self, client_uuid):
         inputs = {}
-        if len(self._nickname) > 20:
-            self._nickname = self._nickname[:20]
-        inputs["nickname"] = self._nickname
+        if len(self._nickname.strip()) == 0:
+            inputs["nickname"] = client_uuid[:20]
+        else:
+            inputs["nickname"] = self._nickname
         inputs["ip"] = self._ip
         inputs["port"] = self._port
-        inputs["player"] = self.player
+        inputs["be_player"] = self.be_player
         return inputs
 
     def _set_spectator(self):
-        self.player = not self.player
+        self.be_player = not self.be_player
 
     @staticmethod
     def write_entry_txt(entry, txt):
@@ -96,7 +98,7 @@ class client_gui():
 
 
 class client_gui_restart():
-    def __init__(self, nickname, player, player_colors, player_num,
+    def __init__(self, nickname, be_player, player_colors, player_num,
                  nicknames, finish_message):
         self._nickname = nickname
 
@@ -104,7 +106,7 @@ class client_gui_restart():
         self._window.title('Client GUI')
         self._window.protocol("WM_DELETE_WINDOW", self._close_window)
 
-        self.player = player
+        self.be_player = be_player
 
         row = 0
         tk.Label(self._window, text="Nickname:").grid(row=row, column=0)
@@ -115,7 +117,7 @@ class client_gui_restart():
         row += 1
         self.spectator_cbutton = tk.Checkbutton(self._window, text='Spectator', command=self._set_spectator)
         self.spectator_cbutton.grid(row=row, column=1)
-        if not self.player:
+        if not self.be_player:
             self.spectator_cbutton.select()
 
         row += 1
@@ -162,19 +164,19 @@ class client_gui_restart():
         sys.exit()
 
     def _continue(self):
-        self._nickname = self._nickname_box.get()
+        self._nickname = self._nickname_box.get()[:20]
         self._window.destroy()
 
-    def get_inputs(self):
-        inputs = {}
-        if len(self._nickname) > 20:
-            self._nickname = self._nickname[:20]
-        inputs["nickname"] = self._nickname
-        inputs["player"] = self.player
-        return inputs
+    def get_inputs(self, c_inputs, client_uuid):
+        if len(self._nickname.strip()) == 0:
+            c_inputs["nickname"] = client_uuid[:20]
+        else:
+            c_inputs["nickname"] = self._nickname
+        c_inputs["be_player"] = self.be_player
+        return c_inputs
 
     def _set_spectator(self):
-        self.player = not self.player
+        self.be_player = not self.be_player
 
     def make_plots(self, fig, time_line, player_colors, player_num, nicknames):
         x_list = []

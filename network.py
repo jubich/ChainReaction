@@ -66,9 +66,9 @@ class Network_c:
     def setblocking(self, flag):
         self.client.setblocking(flag)
 
-    def handshake(self, nickname, player=True):
+    def handshake(self, nickname, be_player=True):
         tries = 0
-        if player:
+        if be_player:
             self.send(("handshake", ("player", nickname, self.client_uuid)))
             self.logger.debug("Handshake player",
                               extra={"client_uuid": self.client_uuid})

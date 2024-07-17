@@ -23,6 +23,7 @@ logger = setup_logging("server.log.jsonl")
 logger.debug("New session started!", extra={"session_uuid": session_uuid})
 
 try:
+    # load config
     try:
         config = load_config_s()
         if config["ip"] is None:
@@ -36,8 +37,8 @@ try:
     logger.debug("Config loaded", extra={"session_uuid": session_uuid,
                                          "config": config})
 
+    # get user input via gui
     try:
-        # get user inputs via gui
         s_gui = server_gui(player_num=config["player_num"],
                            width=config["width"], height=config["height"],
                            ip=config["ip"], port=config["port"])
@@ -47,11 +48,8 @@ try:
                      extra={"session_uuid": session_uuid,
                             "traceback": formatted_traceback(err)})
         sys.exit()
-
     logger.debug("Inputs", extra={"session_uuid": session_uuid,
-                                  "player_num": s_inputs["player_num"],
-                                  "width": s_inputs["width"],
-                                  "height": s_inputs["height"]})
+                                  "s_inputs": s_inputs})
 
     # initial handshake
     server = Network_s(s_inputs["ip"], s_inputs["port"], logger, session_uuid)
@@ -202,17 +200,17 @@ try:
                 break
 
         logger.debug("Game loop stopped!", extra={"session_uuid": session_uuid})
+
+        # get user input via gui
         try:
             restart_gui = server_gui_restart(player_num=s_inputs["player_num"],
                                              width=s_inputs["width"],
                                              height=s_inputs["height"])
-            restart_input = restart_gui.get_inputs()
-            s_inputs["player_num"] = restart_input["player_num"]
-            s_inputs["width"] = restart_input["width"]
-            s_inputs["height"] = restart_input["height"]
+            s_inputs = restart_gui.get_inputs(s_inputs)
         except Exception as err:
             logger.exception("Error in restart gui input!",
                              extra={"session_uuid": session_uuid,
+                                    "s_inputs": s_inputs,
                                     "traceback": formatted_traceback(err)})
             sys.exit()
 
