@@ -184,7 +184,7 @@ class Network_s:
                             if len(players) == s_inputs["player_num"]:
                                 finished = True
                                 spectators.append(read)
-                                self.logger.info("Added player as spactator",
+                                self.logger.info("Added player as spectator",
                                                   extra={"session_uuid": self.session_uuid,
                                                          "client_uuid": msg[1][2]})
                                 conn_uuid[read] = msg[1][2]
@@ -254,8 +254,8 @@ class Network_s:
 
         for spectator in spectators:
             self.send(spectator, ("handshake", handshake_dict))
-            self.send(spectator, ("viewer", None))
+            self.send(spectator, ("spectator", None))
             self.logger.debug("Send handshake and spectator",
                               extra={"session_uuid": self.session_uuid,
                                      "client_uuid": conn_uuid[conn]})
-        return nicknames_dict, player_dict, spectators, handshake_dict, conn_uuid
+        return nicknames_dict, player_dict, handshake_dict, conn_uuid

@@ -68,35 +68,28 @@ try:
         logger.info("Connected!", extra={"client_uuid": client_uuid})
 
         handshake_infos = network.handshake(c_inputs["nickname"], c_inputs["be_player"])
-        PLAYER_NUM = handshake_infos["player_num"]
-        WIDTH_NUM = handshake_infos["width"]
-        HEIGHT_NUM = handshake_infos["height"]
         session_uuid = handshake_infos["session_uuid"]
 
         logger.info("Handshake done!", extra={"client_uuid": client_uuid,
-                                              "session_uuid": session_uuid})
-        logger.debug("Handshake done!", extra={"client_uuid": client_uuid,
                                                "session_uuid": session_uuid,
-                                               "player_num": PLAYER_NUM,
-                                               "width_num": WIDTH_NUM,
-                                               "height_num": HEIGHT_NUM})
+                                               "player_num": handshake_infos["player_num"],
+                                               "width_num": handshake_infos["width"],
+                                               "height_num": handshake_infos["height"]})
 
         # start game
-        player_turn_num = 0
         player_pos = {}
-        for num in range(PLAYER_NUM):
-            player_pos[num] = np.zeros((HEIGHT_NUM, WIDTH_NUM), dtype=int)
-        run = True
-
+        for num in range(handshake_infos["player_num"]):
+            player_pos[num] = np.zeros((handshake_infos["height"], handshake_infos["width"]), dtype=int)
         gameboard = Gameboard(config["box_min_size"], config["box_line_width"],
-                              PLAYER_NUM, config["board_color"], WIDTH_NUM,
-                              HEIGHT_NUM, config["player_colors"])
+                              handshake_infos["player_num"], config["board_color"], handshake_infos["width"],
+                              handshake_infos["height"], config["player_colors"])
 
         clock = pygame.time.Clock()
-
         round_num = 0
+        player_turn_num = 0
         logger.debug("Game loop started!", extra={"client_uuid": client_uuid,
                                                   "session_uuid": session_uuid})
+        run = True
         while run:
             # game loop
             pygame.display.update()
@@ -127,11 +120,11 @@ try:
                                         "session_uuid": session_uuid,
                                         "your_number": your_number})
                     pygame.display.set_caption(f"{handshake_infos['nicknames'][your_number]}")
-                elif msg[0] == "viewer":
+                elif msg[0] == "spectator":
                     logger.debug("Recieved spectator",
                                  extra={"client_uuid": client_uuid,
                                         "session_uuid": session_uuid})
-                    pygame.display.set_caption("Viewer")
+                    pygame.display.set_caption("Spectator")
                 elif msg[0] == "finished":
                     run = False
                     network.close()
@@ -203,7 +196,7 @@ try:
             restart_gui = client_gui_restart(c_inputs["nickname"],
                                              c_inputs["be_player"],
                                              config["player_colors"],
-                                             PLAYER_NUM,
+                                             handshake_infos["player_num"],
                                              handshake_infos['nicknames'],
                                              finish_message)
             c_inputs = restart_gui.get_inputs(c_inputs, client_uuid)

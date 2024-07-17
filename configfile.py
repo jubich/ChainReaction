@@ -74,6 +74,7 @@ def get_config_none(config, default, section, key, _type):
         return None
     return _type(value)
 
+
 def get_config_bool(config, default, section, key):
     value = get_config(config, default, section, key)
     BOOLEAN_STATES = {'1': True, 'yes': True, 'true': True, 'on': True,

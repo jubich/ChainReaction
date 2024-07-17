@@ -65,7 +65,7 @@ try:
         # restart loop
         logger.debug("restart", extra={"session_uuid": session_uuid})
 
-        nicknames, player, _, handshake_dict, conn_uuid = server.handshake(s_inputs)
+        nicknames, player, handshake_dict, conn_uuid = server.handshake(s_inputs)
         logger.info("Handshake done!", extra={"session_uuid": session_uuid})
 
         # start game
@@ -94,7 +94,7 @@ try:
                 else:
                     msg = server.recieve(read)
                     if (msg[0] == "ByeBye") or (msg[0] == None):
-                        if player.get(read, 'viewer') != "viewer":
+                        if player.get(read, 'spectator') != "spectator":
                             game.set_eliminated(player[read])
                             game.set_state_for_undo()
                             last_round_num = round_num
@@ -109,7 +109,7 @@ try:
                                             "alive": game.player_alive,
                                             "counter": game._counter,
                                             "recieved": msg[0]})
-                        if player.get(read, 'viewer') == "viewer":
+                        if player.get(read, 'spectator') == "spectator":
                             print(f"Closed conncetion to spectator at {read}")
                         else:
                             print(f"Closed conncetion to player {nicknames[player[read]]}")
@@ -124,7 +124,7 @@ try:
                                      extra={"session_uuid": session_uuid,
                                             "client_uuid": conn_uuid[read],
                                             "position": msg})
-                        if player.get(read, "viewer") == game.player_to_move():
+                        if player.get(read, "spectator") == game.player_to_move():
                             row, column = msg
                             pos_val, pos_player = game.get_pos(row, column, False, True)
                             if (pos_player == game.player_to_move()) or (pos_val == 0):
@@ -137,7 +137,7 @@ try:
                         logger.debug("Recieved undo",
                                      extra={"session_uuid": session_uuid,
                                             "client_uuid": conn_uuid[read]})
-                        if player.get(read, "viewer") != "viewer":
+                        if player.get(read, "spectator") != "spectator":
                             round_num = last_round_num
                             game.undo(writable, round_num)
                     elif msg[0] == "handshake":
@@ -146,7 +146,7 @@ try:
                                            "client_uuid": msg[1][2]})
                         conn_uuid[read] = msg[1][2]
                         server.send(conn, ("handshake", handshake_dict))
-                        server.send(conn, ("viewer", None))
+                        server.send(conn, ("spectator", None))
                     else:
                         logger.warning("Recieved unknown msg",
                                        extra={"session_uuid": session_uuid,
@@ -155,7 +155,7 @@ try:
 
             for error in errored:
                 writable.remove(error)
-                if player.get(error, 'viewer') == "viewer":
+                if player.get(error, 'spectator') == "spectator":
                     print(f"Closed conncetion to spectator at {error}")
                 else:
                     print(f"Closed conncetion to player {nicknames[player[error]]}")
