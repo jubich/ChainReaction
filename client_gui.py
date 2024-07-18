@@ -71,7 +71,7 @@ class client_gui():
         sys.exit()
 
     def _continue(self):
-        self._nickname = self._nickname_box.get()[:20]
+        self._nickname = self._nickname_box.get()[:15]
         self._ip = self._ip_box.get()
         socket.inet_pton(socket.AF_INET, self._ip)  # tests for valid ip4
         self._port = int(self._port_box.get())
@@ -80,8 +80,9 @@ class client_gui():
     def get_inputs(self, client_uuid):
         inputs = {}
         if len(self._nickname.strip()) == 0:
-            inputs["nickname"] = client_uuid[:20]
+            inputs["nickname"] = client_uuid[:15]
         else:
+            self._nickname.encode("utf-8", "strict")  # tests for valid uft-8 name
             inputs["nickname"] = self._nickname
         inputs["ip"] = self._ip
         inputs["port"] = self._port
@@ -164,13 +165,14 @@ class client_gui_restart():
         sys.exit()
 
     def _continue(self):
-        self._nickname = self._nickname_box.get()[:20]
+        self._nickname = self._nickname_box.get()[:15]
         self._window.destroy()
 
     def get_inputs(self, c_inputs, client_uuid):
         if len(self._nickname.strip()) == 0:
-            c_inputs["nickname"] = client_uuid[:20]
+            c_inputs["nickname"] = client_uuid[:15]
         else:
+            self._nickname.encode("utf-8", "strict")  # tests for valid uft-8 name
             c_inputs["nickname"] = self._nickname
         c_inputs["be_player"] = self.be_player
         return c_inputs

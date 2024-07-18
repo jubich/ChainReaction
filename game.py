@@ -10,23 +10,37 @@ import pygame
 class Gameboard():
     def __init__(self, min_box_size, line_width, player_num, board_color,
                  width_num, height_num, player_colors):
-        self.inside = min_box_size        # min size of box inside
-        self.line_width = line_width      # width of box seperator
+        self.inside = int(min_box_size)        # min size of box inside
+        self.line_width = int(line_width)      # width of box seperator
         self.player_num = int(player_num)
         self.board_color = board_color
         self.width_num = int(width_num)
         self.height_num = int(height_num)
         self.player_colors = player_colors
-        self.width_min = width_num * self.inside + (height_num-1) * self.line_width
-        self.height_min = height_num * self.inside + (height_num-1) * self.line_width
-        self.curr_board_h = self.height_min
-        self.curr_board_w = self.width_min
+        self._calc_min_inside()
+        self.width_min_grid = width_num * self.inside + width_num * self.line_width
+        self.height_min_grid = height_num * self.inside + (height_num-1) * self.line_width
+        self.curr_grid_height = self.height_min_grid
+        self.curr_grid_width = self.width_min_grid
+        self.info_column_width = 180
+        self.bar_width = 300
+        self.end_column_width = 10
         self.window = self._create_window()
         self._first_setup()
 
+    def _calc_min_inside(self):
+        absolute_min_window_height = 262
+        box_height_tot = absolute_min_window_height - (self.height_num-1) * self.line_width
+        box_height = box_height_tot // self.height_num
+        if self.inside < box_height:
+            self.inside = box_height
+
     def _create_window(self):
-        window = pygame.display.set_mode((self.width_min + 50 + 300 + 50,
-                                          self.height_min),
+        window = pygame.display.set_mode((self.width_min_grid +
+                                          self.info_column_width +
+                                          self.bar_width +
+                                          self.end_column_width,
+                                          self.height_min_grid),
                                          pygame.RESIZABLE)
         pygame.display.set_caption("Client")
         window.fill(self.board_color)
@@ -34,11 +48,11 @@ class Gameboard():
 
     def _first_setup(self):
         self.box_size = self.inside
-        self._meshing(self.width_min, self.height_min)
+        self._meshing(self.width_min_grid, self.height_min_grid)
         self._draw_mesh(self._get_player_color(0))
 
     def _calc_box_size(self, width, height):
-        box_width_tot = width - (self.width_num-1) * self.line_width
+        box_width_tot = width - self.width_num * self.line_width
         box_width = box_width_tot // self.width_num
         box_height_tot = height - (self.height_num-1) * self.line_width
         box_height = box_height_tot // self.height_num
@@ -53,7 +67,7 @@ class Gameboard():
         self.box_size = box_size
 
     def _calc_window_size(self):
-        board_width = self.width_num * self.box_size + (self.width_num-1) * self.line_width
+        board_width = self.width_num * self.box_size + self.width_num * self.line_width
         board_height = self.height_num * self.box_size + (self.height_num-1) * self.line_width
         return board_width, board_height
 
@@ -78,20 +92,23 @@ class Gameboard():
 
     def rescale_window(self, new_width, new_height, player_pos, player_turn_num,
                        nicknames, curr_round):
-        if new_width >= self.width_min:
-            width = new_width
+        if (new_width - self.info_column_width - self.bar_width - self.end_column_width) >= self.width_min_grid:
+            width = new_width - self.info_column_width - self.bar_width - self.end_column_width
         else:
-            width = self.width_min
-        if new_height >= self.height_min:
+            width = self.width_min_grid
+        if new_height >= self.height_min_grid:
             height = new_height
         else:
-            height = self.height_min
+            height = self.height_min_grid
         self._calc_box_size(width, height)
         board_width, board_height = self._calc_window_size()
-        self.curr_board_h = board_height
-        self.curr_board_w = board_width
-        self.window = pygame.display.set_mode((self.curr_board_w + 50 + 300 + 50,
-                                               self.curr_board_h),
+        self.curr_grid_height = board_height
+        self.curr_grid_width = board_width
+        self.window = pygame.display.set_mode((self.curr_grid_width
+                                               + self.info_column_width
+                                               + self.bar_width
+                                               + self.end_column_width,
+                                               self.curr_grid_height),
                                               pygame.RESIZABLE)
         self.window.fill(self.board_color)
         self._meshing(board_width, board_height)
@@ -101,7 +118,6 @@ class Gameboard():
         self.window.fill(self.board_color)
         for num in range(self.player_num):
             player_board = player_pos[num]
-            player_color = self._get_player_color(num)
             self._draw_circle(player_board, self._get_player_color(num))
         self._draw_mesh(self._get_player_color(player_turn_num))
         self._write_infos(player_pos, nicknames, curr_round,
@@ -156,7 +172,7 @@ class Gameboard():
             total_count += np.sum(value)
 
         if total_count != 0:
-            height_per_sphere = self.curr_board_h / total_count
+            height_per_sphere = self.curr_grid_height / total_count
         else:
             height_per_sphere = 0
 
@@ -166,50 +182,56 @@ class Gameboard():
             color = self._get_player_color(key)
             # left, top, width, height
             curr_height = round(height_per_sphere * count)
-            rect = (self.curr_board_w + 90, last_height, 300, curr_height)
-            font_size = self.get_value_in_range(6, 24, round(curr_height))
+            rect = (self.curr_grid_width + self.info_column_width, last_height, self.bar_width, curr_height)
+            font_size = self.get_value_in_range(6, 18, round(curr_height))
             font = pygame.font.SysFont('Arial', font_size)
             text_surface = font.render(f'{count} : {nicknames[key]}', False, (255, 255, 255))
             pygame.draw.rect(self.window, color, rect)
-            self.window.blit(text_surface, (round(self.curr_board_w + 50+150-text_surface.get_width()/2),
+            self.window.blit(text_surface, (round(self.curr_grid_width
+                                                  + self.info_column_width
+                                                  + self.bar_width/2
+                                                  - text_surface.get_width()/2),
                                             round(last_height + curr_height/2
-                                                  -text_surface.get_height()/2)))
+                                                  - text_surface.get_height()/2)))
             last_height += curr_height
 
     def _write_infos(self, player_pos, nicknames, curr_round, next_pl):
+        text_indent = 10
         font = pygame.font.SysFont('Arial', 24)
         h_pos = 10
         text_surface = font.render('Total:', False, (255, 255, 255))
-        self.window.blit(text_surface, (self.curr_board_w + 10, h_pos))
+        self.window.blit(text_surface, (self.curr_grid_width + text_indent, h_pos))
         total_count = 0
         for value in player_pos.values():
             total_count += np.sum(value)
         h_pos += 34
         text_surface = font.render(f'{total_count}', False, (255, 255, 255))
-        self.window.blit(text_surface, (self.curr_board_w + 10, h_pos))
+        self.window.blit(text_surface, (self.curr_grid_width + text_indent, h_pos))
         h_pos += 34
         text_surface = font.render('Round:', False, (255, 255, 255))
-        self.window.blit(text_surface, (self.curr_board_w + 10, h_pos))
-        total_count = 0
-        for value in player_pos.values():
-            total_count += np.sum(value)
+        self.window.blit(text_surface, (self.curr_grid_width + text_indent, h_pos))
         h_pos += 34
         text_surface = font.render(f'{curr_round}', False, (255, 255, 255))
-        self.window.blit(text_surface, (self.curr_board_w + 10, h_pos))
+        self.window.blit(text_surface, (self.curr_grid_width + text_indent, h_pos))
         h_pos += 34
         text_surface = font.render('Next:', False, (255, 255, 255))
-        self.window.blit(text_surface, (self.curr_board_w + 10, h_pos))
-        total_count = 0
-        for value in player_pos.values():
-            total_count += np.sum(value)
+        self.window.blit(text_surface, (self.curr_grid_width + text_indent, h_pos))
         h_pos += 34
-        text_surface = font.render(f'{next_pl}', False, (255, 255, 255))
-        self.window.blit(text_surface, (self.curr_board_w + 10, h_pos))
+        for size in range(24, 11, -1):
+            pl_font = pygame.font.SysFont('Arial', size)
+            text_surface = pl_font.render(f'{next_pl}', False, (255, 255, 255))
+            if text_surface.get_width() <= self.info_column_width - text_indent - 5:
+                break
+        self.window.blit(text_surface, (self.curr_grid_width + text_indent,
+                                        h_pos))
         h_pos += 34
-        self._button_rect = (self.curr_board_w + 5, h_pos-5, 80, 34)
+        self._button_rect = (self.curr_grid_width + text_indent, h_pos, 80, 34)
         pygame.draw.rect(self.window, (255, 0, 0), self._button_rect)
         text_surface = font.render("Undo!", False, (255, 255, 255))
-        self.window.blit(text_surface, (self.curr_board_w + 10, h_pos))
+        h_pos += 5
+        self.window.blit(text_surface, (self.curr_grid_width + 80 / 2
+                                        + text_indent
+                                        - text_surface.get_width()/2, h_pos))
 
     def mouse_pos(self, mouse_x, mouse_y):
         column = None
