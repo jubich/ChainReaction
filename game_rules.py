@@ -165,7 +165,7 @@ class Gamecalc():
         return None
 
     def player_next_to_move(self):
-        # that way player next to move is alway the one after player_to_move()
+        # that way player next to move is always the one after player_to_move()
         _ = self.player_to_move()
         for num in range(self.player_num):
             # to be safe we can exit the while loop

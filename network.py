@@ -29,7 +29,7 @@ class Network_c:
         try:
             self.client.connect(self.addr)
             return True
-        except OSError as err:
+        except (OSError, UnboundLocalError) as err:
             self.logger.error("Connection failed!",
                               extra={"client_uuid": self.client_uuid,
                                      "traceback": formatted_traceback(err)})
@@ -40,25 +40,31 @@ class Network_c:
         msg = bytes(f"{len(msg):<{HEADERSIZE}}", "utf-8") + msg
         try:
             self.client.sendall(msg)
-        except OSError as err:
+        except (OSError, UnboundLocalError) as err:
             self.logger.error("Error while sending!",
                               extra={"session_uuid": self.client_uuid,
-                                     "traceback": formatted_traceback(err)})
+                                     "traceback": formatted_traceback(err),
+                                     "data": data})
             self.close()
             sys.exit()
 
     def recieve(self):
-        msg = self.client.recv(HEADERSIZE).decode("utf-8")
-        if msg != "":
-            msg_len = int(msg)
-            recv = pickle.loads(self.client.recv(msg_len))
-            return recv
+        try:
+            msg = self.client.recv(HEADERSIZE).decode("utf-8")
+            if msg != "":
+                msg_len = int(msg)
+                recv = pickle.loads(self.client.recv(msg_len))
+                return recv
+        except (OSError, UnboundLocalError) as err:
+            self.logger.error("Error while sending!",
+                              extra={"session_uuid": self.client_uuid,
+                                     "traceback": formatted_traceback(err)})
         return (None, None)
 
     def close(self):
         try:
             self.client.close()
-        except OSError as err:
+        except (OSError, UnboundLocalError) as err:
             self.logger.error("Error while closing connection!",
                               extra={"session_uuid": self.client_uuid,
                                      "traceback": formatted_traceback(err)})
@@ -90,6 +96,10 @@ class Network_c:
                     self.logger.warning("Handshake, Unkown message",
                                         extra={"client_uuid": self.client_uuid,
                                                "recieved": msg})
+                    self.send(("ByeBye", None))
+                    self.close()
+                    sys.exit()
+
             if errored:
                 self.logger.error("Connection failed!",
                                   extra={"client_uuid": self.client_uuid})
@@ -117,7 +127,7 @@ class Network_s:
             self.server.bind(self.addr)
             self.server.listen(listen)
             return True
-        except OSError as err:
+        except (OSError, UnboundLocalError) as err:
             self.logger.error("Failed binding!",
                               extra={"session_uuid": self.session_uuid,
                                      "traceback": formatted_traceback(err)})
@@ -134,25 +144,31 @@ class Network_s:
         msg = bytes(f"{len(msg):<{HEADERSIZE}}", "utf-8") + msg
         try:
             connection.sendall(msg)
-        except OSError as err:
+        except (OSError, UnboundLocalError) as err:
             self.logger.error("Error while sending!",
                               extra={"session_uuid": self.session_uuid,
-                                     "traceback": formatted_traceback(err)})
+                                     "traceback": formatted_traceback(err),
+                                     "data": data})
             self.close_connection(connection)
 
     def recieve(self, connection):
-        msg = connection.recv(HEADERSIZE).decode("utf-8")
-        if msg != "":
-            msg_len = int(msg)
-            recv = pickle.loads(connection.recv(msg_len))
-            return recv
+        try:
+            msg = connection.recv(HEADERSIZE).decode("utf-8")
+            if msg != "":
+                msg_len = int(msg)
+                recv = pickle.loads(connection.recv(msg_len))
+                return recv
+        except (OSError, UnboundLocalError) as err:
+            self.logger.error("Error while sending!",
+                              extra={"session_uuid": self.session_uuid,
+                                     "traceback": formatted_traceback(err)})
         return (None, None)
 
     def close_connection(self, connection):
         self.connections.remove(connection)
         try:
             connection.close()
-        except OSError as err:
+        except (OSError, UnboundLocalError) as err:
             self.logger.error("Error while closing connection!",
                               extra={"session_uuid": self.session_uuid,
                                      "traceback": formatted_traceback(err)})

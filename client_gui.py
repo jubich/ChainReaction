@@ -199,7 +199,7 @@ class client_gui_restart():
                     y += player_count
                     y_lists1[num].append(y)
 
-        major_tick, minor_tick = self.get_spacing(round_num)
+        major_tick, minor_tick = self.get_spacing(round_num + 1)
         axs1 = fig.add_subplot(2, 1, 1)
         axs1.xaxis.set_major_locator(ticker.MultipleLocator(major_tick))
         axs1.xaxis.set_minor_locator(ticker.MultipleLocator(minor_tick))

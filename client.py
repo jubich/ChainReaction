@@ -19,11 +19,132 @@ from configfile import load_config_c
 from loggingsetup import setup_logging, formatted_traceback
 
 
-pygame.init()
-client_uuid = str(uuid.uuid4())  # to differentiate users
-logger = setup_logging("client.log.jsonl")
-logger.debug("New client started!", extra={"client_uuid": client_uuid})
-try:
+def game_loop(logger, session_uuid, client_uuid, network, config,
+              handshake_infos):
+    finish_message = None
+    player_pos = {}
+    for num in range(handshake_infos["player_num"]):
+        player_pos[num] = np.zeros((handshake_infos["height"], handshake_infos["width"]), dtype=int)
+    gameboard = Gameboard(config["box_min_size"], config["box_line_width"],
+                          handshake_infos["player_num"], config["board_color"],
+                          handshake_infos["width"], handshake_infos["height"],
+                          config["player_colors"])
+
+    clock = pygame.time.Clock()
+    round_num = 0
+    player_turn_num = 0
+    logger.debug("Game loop started!", extra={"client_uuid": client_uuid,
+                                              "session_uuid": session_uuid})
+    run = True
+    while run:
+        # game loop
+        pygame.display.update()
+        clock.tick(config["fps_limit"])
+        connection = [network.client]
+        readable, writable, errored = select.select(connection, connection,
+                                                    connection, 0.5)
+
+        if readable:
+            msg = network.recieve()
+            if msg[0] == "positions":
+
+                player_pos = msg[1]
+                logger.debug("Recieved player positions",
+                             extra={"client_uuid": client_uuid,
+                                    "session_uuid": session_uuid,
+                                    "player_pos": player_pos})
+            elif msg[0] == "next player":
+                player_turn_num, round_num = msg[1]
+                logger.debug("Recieved next player",
+                             extra={"client_uuid": client_uuid,
+                                    "session_uuid": session_uuid,
+                                    "player_turn_num": player_turn_num,
+                                    "round_num": round_num})
+
+            elif msg[0] == "your number":
+                your_number = msg[1]
+                logger.debug("Recieved own number",
+                             extra={"client_uuid": client_uuid,
+                                    "session_uuid": session_uuid,
+                                    "your_number": your_number})
+                pygame.display.set_caption(f"{handshake_infos['nicknames'][your_number]}")
+
+            elif msg[0] == "spectator":
+                logger.debug("Recieved spectator",
+                             extra={"client_uuid": client_uuid,
+                                    "session_uuid": session_uuid})
+                pygame.display.set_caption("Spectator")
+
+            elif msg[0] == "finished":
+                run = False
+                network.close()
+                logger.debug("Recieved finished",
+                             extra={"client_uuid": client_uuid,
+                                    "session_uuid": session_uuid,
+                                    "winner": msg[1][0],
+                                    "time_line": msg[1][1]})
+                print(f"winner: {handshake_infos['nicknames'][msg[1][0]]}")
+                finish_message = msg[1]
+                break
+
+            elif msg[0] == None:
+                logger.info("Connection closed by server!",
+                             extra={"client_uuid": client_uuid,
+                                    "session_uuid": session_uuid})
+                run = False
+                network.close()
+                break
+
+            else:
+                logger.warning("Recieved unknown msg",
+                               extra={"client_uuid": client_uuid,
+                                      "session_uuid": session_uuid,
+                                      "recieved": msg})
+
+        if errored:
+            run = False
+            network.close()
+            logger.error("Connection failed!",
+                         extra={"client_uuid": client_uuid,
+                                "session_uuid": session_uuid})
+            sys.exit()
+
+        gameboard.update_window(player_pos, player_turn_num,
+                                handshake_infos["nicknames"], round_num)
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                quit_gui = client_quit_gui()
+                if quit_gui.quit:
+                    run = False
+                    network.send(("ByeBye", None))
+                    network.close()
+                    logger.debug("Game closed!",
+                                 extra={"client_uuid": client_uuid,
+                                        "session_uuid": session_uuid})
+            if event.type == pygame.VIDEORESIZE:
+                gameboard.rescale_window(event.w, event.h, player_pos, player_turn_num,
+                                         handshake_infos["nicknames"], round_num)
+                logger.debug("Resized", extra={"client_uuid": client_uuid,
+                                               "session_uuid": session_uuid,
+                                               "width": event.w,
+                                               "height": event.h})
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:
+                    mouse_x, mouse_y = pygame.mouse.get_pos()
+                    command = gameboard.mouse_pos(mouse_x, mouse_y)
+                    if command is not None:
+                        network.send(command)
+                    logger.debug("Mouse click", extra={"client_uuid": client_uuid,
+                                                       "session_uuid": session_uuid,
+                                                       "pos": (mouse_x, mouse_y),
+                                                       "command": command})
+
+    pygame.display.quit()
+    return finish_message
+
+
+def main(client_uuid, logger):
     # load config
     try:
         config = load_config_c()
@@ -51,7 +172,6 @@ try:
     restart = True
     session_uuid = None
     while restart:
-        finish_message = None
         if session_uuid is None:
             logger.debug("start", extra={"client_uuid": client_uuid})
         else:
@@ -77,119 +197,11 @@ try:
                                                "height_num": handshake_infos["height"]})
 
         # start game
-        player_pos = {}
-        for num in range(handshake_infos["player_num"]):
-            player_pos[num] = np.zeros((handshake_infos["height"], handshake_infos["width"]), dtype=int)
-        gameboard = Gameboard(config["box_min_size"], config["box_line_width"],
-                              handshake_infos["player_num"], config["board_color"], handshake_infos["width"],
-                              handshake_infos["height"], config["player_colors"])
-
-        clock = pygame.time.Clock()
-        round_num = 0
-        player_turn_num = 0
-        logger.debug("Game loop started!", extra={"client_uuid": client_uuid,
-                                                  "session_uuid": session_uuid})
-        run = True
-        while run:
-            # game loop
-            pygame.display.update()
-            clock.tick(config["fps_limit"])
-            connection = [network.client]
-            readable, writable, errored = select.select(connection, connection,
-                                                        connection, 0.5)
-
-            if readable:
-                msg = network.recieve()
-                if msg[0] == "positions":
-                    player_pos = msg[1]
-                    logger.debug("Recieved player positions",
-                                 extra={"client_uuid": client_uuid,
-                                        "session_uuid": session_uuid,
-                                        "player_pos": player_pos})
-                elif msg[0] == "next player":
-                    player_turn_num, round_num = msg[1]
-                    logger.debug("Recieved next player",
-                                 extra={"client_uuid": client_uuid,
-                                        "session_uuid": session_uuid,
-                                        "player_turn_num": player_turn_num,
-                                        "round_num": round_num})
-                elif msg[0] == "your number":
-                    your_number = msg[1]
-                    logger.debug("Recieved own number",
-                                 extra={"client_uuid": client_uuid,
-                                        "session_uuid": session_uuid,
-                                        "your_number": your_number})
-                    pygame.display.set_caption(f"{handshake_infos['nicknames'][your_number]}")
-                elif msg[0] == "spectator":
-                    logger.debug("Recieved spectator",
-                                 extra={"client_uuid": client_uuid,
-                                        "session_uuid": session_uuid})
-                    pygame.display.set_caption("Spectator")
-                elif msg[0] == "finished":
-                    run = False
-                    network.close()
-                    logger.debug("Recieved finished",
-                                 extra={"client_uuid": client_uuid,
-                                        "session_uuid": session_uuid,
-                                        "winner": msg[1][0],
-                                        "time_line": msg[1][1]})
-                    print(f"winner: {handshake_infos['nicknames'][msg[1][0]]}")
-                    finish_message = msg[1]
-                    break
-                elif msg[0] == None:
-                    logger.info("Connection closed by server!",
-                                 extra={"client_uuid": client_uuid,
-                                        "session_uuid": session_uuid})
-                    run = False
-                    network.close()
-                    break
-                else:
-                    logger.warning("Recieved unknown msg",
-                                   extra={"client_uuid": client_uuid,
-                                          "session_uuid": session_uuid,
-                                          "recieved": msg})
-            if errored:
-                run = False
-                network.close()
-                logger.error("Connection failed!",
-                             extra={"client_uuid": client_uuid,
-                                    "session_uuid": session_uuid})
-                sys.exit()
-
-            gameboard.update_window(player_pos, player_turn_num,
-                                    handshake_infos["nicknames"], round_num)
-
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    quit_gui = client_quit_gui()
-                    if quit_gui.quit:
-                        run = False
-                        network.send(("ByeBye", None))
-                        network.close()
-                        logger.debug("Game closed!",
-                                     extra={"client_uuid": client_uuid,
-                                            "session_uuid": session_uuid})
-                if event.type == pygame.VIDEORESIZE:
-                    gameboard.rescale_window(event.w, event.h, player_pos, player_turn_num,
-                                             handshake_infos["nicknames"], round_num)
-                    logger.debug("Resized", extra={"client_uuid": client_uuid,
-                                                   "session_uuid": session_uuid,
-                                                   "width": event.w,
-                                                   "height": event.h})
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    if event.button == 1:
-                        mouse_x, mouse_y = pygame.mouse.get_pos()
-                        command = gameboard.mouse_pos(mouse_x, mouse_y)
-                        if command is not None:
-                            network.send(command)
-                        logger.debug("Mouse click", extra={"client_uuid": client_uuid,
-                                                           "session_uuid": session_uuid,
-                                                           "pos": (mouse_x, mouse_y),
-                                                           "command": command})
+        finish_message = game_loop(logger, session_uuid, client_uuid, network,
+                                   config, handshake_infos)
 
         logger.debug("Game loop stopped!", extra={"client_uuid": client_uuid,
                                                   "session_uuid": session_uuid})
-        pygame.display.quit()
 
         # get user input via gui
         try:
@@ -210,8 +222,17 @@ try:
     pygame.quit()
     logger.debug("Client stopped!", extra={"client_uuid": client_uuid,
                                            "session_uuid": session_uuid})
-except Exception as err:
-    logger.critical("Unexpected Error!",
-                    extra={"client_uuid": client_uuid,
-                           "traceback": formatted_traceback(err)})
-    time.sleep(2)
+
+
+if __name__ == "__main__":
+    pygame.init()
+    client_uuid = str(uuid.uuid4())  # to differentiate users
+    logger = setup_logging("client.log.jsonl")
+    logger.debug("New client started!", extra={"client_uuid": client_uuid})
+    try:
+        main(client_uuid, logger)
+    except Exception as err:
+        logger.critical("Unexpected Error!",
+                        extra={"client_uuid": client_uuid,
+                               "traceback": formatted_traceback(err)})
+        time.sleep(2)
