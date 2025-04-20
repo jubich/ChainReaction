@@ -1,16 +1,21 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# deals with calc and player_pos
-# recieves new player_pos -> check on server and on client
-# sends player_arrays
+"""Main file to start for the game server process.
+
+Every game needs to have a server running which deals with the game calculations
+and the connection to and from clients.
+"""
 
 
+from __future__ import annotations
+from typing import Dict, Any
 import sys
 import time
 import socket
 import select
 import uuid
+import logging
 
 from network import Network_s
 from game_rules import Gamecalc
@@ -19,8 +24,27 @@ from configfile import load_config_s
 from loggingsetup import setup_logging, formatted_traceback
 
 
-def game_loop(logger, session_uuid, conn_uuid, server, game, player, nicknames,
-              handshake_dict):
+def game_loop(logger: logging.Logger, session_uuid: str, conn_uuid: Dict[socket.socket, str],
+              server: Network_s, game: Gamecalc, player: Dict[socket.socket, int], nicknames: Dict[int, str],
+              handshake_dict: Dict[str, Any]) -> None:
+    """Starts a game.
+
+    Recieves inputs from players and spectators via sockets. Calulates new game starte
+    and send the new gamestate back to connected sockets.
+
+    Args:
+        logger: Logs the progress and state of the game/function.
+        session_uuid: Differentiates different games sessions in log-files.
+        conn_uuid: Connects the sockets to their respective uuids for connection with
+          client log-files.
+        server: Main class for dealing with sending and recieving of data via sockets.
+        game: Class containing the game logic.
+        player: Connects the socket to their respective "player_number" similar to
+          "conn_uuid" but "player_number" is easier to deal with then uuid for selecting colors,
+          etc.
+        nicknames: Connects "player_number" to the respective player nicknames.
+        handshake_dict: Contains information for the handshake to new connections.
+    """
     logger.debug("Game loop started!", extra={"session_uuid": session_uuid})
     round_num = 0
     last_round_num = round_num
@@ -143,7 +167,18 @@ def game_loop(logger, session_uuid, conn_uuid, server, game, player, nicknames,
             run = False
 
 
-def main(session_uuid, logger):
+def main(session_uuid: str, logger: logging.Logger) -> None:
+    """Gathers necessarry information for starting "game_loop".
+
+    Deals with loading the config file, getting user input and binding the ip.
+    After that the "restart-loop" is entered which deals with the handshake process,
+    starting of the "game_loop" and dealing with the user inputs after a game.
+    Exits via "sys.exit" if problem occurred.
+
+    Args:
+        session_uuid: Differentiates different games sessions in log-files.
+        logger: Logs the progress and state of the game/function.
+    """
     # load config
     try:
         config = load_config_s()

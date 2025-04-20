@@ -1,17 +1,36 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# Deals with game calculations.
+"""Contains the "Gamecalc" class for the server module to do the game calculations."""
 
 
+from __future__ import annotations
+from typing import List, Tuple
 import time
-import numpy as np
 import copy
+import logging
+import socket
+
+import numpy as np
+
+from network import Network_s
 
 
 class Gamecalc():
-    def __init__(self, player_num, width_num, height_num, reaction_time_step,
-                 network, logger, session_uuid):
+    """Calculates the game."""
+    def __init__(self, player_num: int, width_num: int, height_num: int, reaction_time_step: float,
+                 network: Network_s, logger: logging.Logger | None, session_uuid: str) -> None:
+        """Initializes the instance.
+
+        Args:
+            player_num: Number of players.
+            width_num: Number of boxes in x-direction.
+            height_num: Number of boxes in y-direction.
+            reaction_time_step: Time in s between each reaction step.
+            network: Main class for dealing with sending and recieving of data via sockets.
+            logger: Logs the progress and state of the game/function or None for testing.
+            session_uuid: Differentiates different games sessions in log-files.
+        """
         self.player_num = int(player_num)
         self.width_num = int(width_num)
         self.height_num = int(height_num)
@@ -24,7 +43,8 @@ class Gamecalc():
         self.winner = None
         self.time_line = {}
 
-    def _create_boards(self):
+    def _create_boards(self) -> None:
+        """Initializes the boards/arrays and variables needed for the game calculations."""
         self.player_pos = {}
         self.substract_board = {}
         self.player_alive = {}
@@ -37,8 +57,18 @@ class Gamecalc():
         self.last_player_alive = self.player_alive
         self._last_counter = self._counter
 
-    def update_player(self, player, pos_l, num_l, connections, round_num):
-        # pos + num as list
+    def update_player(self, player: int, pos_l: List[Tuple[int, int]],
+                      num_l: List[int], connections: List[socket.socket] | None,
+                      round_num: int) -> None:
+        """Updates player positions and distributes those to the clients.
+
+        Args:
+            player: "Player_number" of current player.
+            pos_l: Positions to be updated with corresponding number of circles.
+            num_l: Number of circles to be added to corresponding position.
+            connections: Sockets of connected clients or None for testing.
+            round_num: Current round number.
+        """
         chain_reaction = []
         for pos, num in zip(pos_l, num_l):
             row, column = pos
@@ -82,7 +112,16 @@ class Gamecalc():
             if len(alive) == 1:
                 self.winner = alive[0]
 
-    def _update_chain_board(self, row, column):
+    def _update_chain_board(self, row: int, column: int) -> None:
+        """Updates the "chain_board".
+
+        The "chain_board" is used to transfer the captured and "exploded" circles
+        to their new postion and "owner".
+
+        Args:
+            row: Row at which the "explosion" takes place.
+            column: Column at which the "explosion" takes place.
+        """
         try:
             self.chain_board[row+1][column] += 1 + self.get_pos(row+1, column, True, False)
         except IndexError:
@@ -99,7 +138,32 @@ class Gamecalc():
         if column_neg >= 0:
             self.chain_board[row][column_neg] += 1 + self.get_pos(row, column_neg, True, False)
 
-    def get_pos(self, row, column, substract, get_player):
+    def get_pos(self, row: int, column:int, substract: bool, get_player: bool) -> int | Tuple[int, int]:
+        """Return the number of circles (and "player_number") of a position.
+
+        !!Warning: "substract" and "get_player" can not be used combined!!
+
+        Args:
+            row: Row at which the information is requested.
+            column: Column at which the information is requested.
+            substract: Wether the "substact_board" should be updated or not. Can not be used with
+              "get_player"!
+            get_player: Wether the "player_number" of the requested position should be returned.
+              Can not be used with "substract"!
+
+        Returns:
+            By default ("substract" and "get_player" are "False") only the number of
+            circles at the requested position is returned.
+
+            If "substract" is "True" then "get_player" must be "False" and the
+            "substract_board" will be updated. If the value in the "substract_board"
+            is not "0" then "0" is returned, because the value at this position was
+            already returned (would duplicated this circles otherwise, the
+            "substract_board" is used for a better animation).
+
+            If "get_player" it "True" then "substract" must be "False" and additionaly
+            the "player_number" who ownes that circles is returned.
+        """
         for num in range(self.player_num):
             pos_val = self.player_pos[num][row][column]
             if pos_val != 0:
@@ -112,12 +176,28 @@ class Gamecalc():
             return pos_val, num
         return pos_val
 
-    def _clear_substract_board(self):
+    def _clear_substract_board(self) -> None:
+        """Clears the "substract_board".
+
+        The "substract_board" is used to clear the circles at captured positions
+        for all palyers at the same time. It makes the animation look better.
+        """
         for num in range(self.player_num):
             self.player_pos[num] -= self.substract_board[num]
             self.substract_board[num] = np.zeros((self.height_num, self.width_num), dtype=int)
 
-    def _clear_chain_board(self, player, connections, round_num):
+    def _clear_chain_board(self, player: int, connections: List[socket.socket] | None,
+                           round_num: int) -> None:
+        """Clears the "chain_board".
+
+        The "chain_board" is used to transfer the captured and "exploded" circles
+        to their new postion and "owner".
+
+        Args:
+            player: "Player_number" of current player.
+            connections: Sockets of connected clients or None for testing.
+            round_num: Current round number.
+        """
         pos_l = []
         num_l = []
         for num_r, row in enumerate(self.chain_board):
@@ -128,13 +208,23 @@ class Gamecalc():
         self.chain_board = np.zeros((self.height_num, self.width_num), dtype=int)
         self.update_player(player, pos_l, num_l, connections, round_num)
 
-    def _check_elimination(self):
+    def _check_elimination(self) -> None:
+        """Checks for elimination and sets "self.player_alive".
+
+        !! Should only be used after all player had at least one turn otherwise
+        player will get falsely eliminated due to their "play_pos" sum beeing "0"!!
+        """
         for num in range(self.player_num):
             sum_p = np.sum(self.player_pos[num])
             if sum_p == 0:
                 self.player_alive[num] = False
 
-    def get_eliminated(self):
+    def get_eliminated(self) -> List[int]:
+        """Returns a list with "player_numbers" of eliminated players.
+
+        !! Should only be used after all player had at least one turn due to use
+        of "self._check_elimination"!!
+        """
         self._check_elimination()
         eliminated = []
         for num in range(self.player_num):
@@ -142,7 +232,12 @@ class Gamecalc():
                 eliminated.append(num)
         return eliminated
 
-    def get_alive(self):
+    def get_alive(self) -> List[int]:
+        """Returns a list with "player_numbers" of alive players.
+
+        !! Should only be used after all player had at least one turn due to use
+        of "self._check_elimination"!!
+        """
         self._check_elimination()
         alive = []
         for num in range(self.player_num):
@@ -150,10 +245,20 @@ class Gamecalc():
                 alive.append(num)
         return alive
 
-    def set_eliminated(self, player):
+    def set_eliminated(self, player) -> None:
+        """Sets a player as eliminated.
+
+        Args:
+            player: "Player_number" of player to be eliminated.
+        """
         self.player_alive[player] = False
 
-    def player_to_move(self):
+    def player_to_move(self) -> int | None:
+        """Returns the "player_number" of the current player.
+
+        Returns:
+            "None" should in theory never be returned.
+        """
         for num in range(self.player_num):
             # to be safe we can exit the while loop
             if self.player_alive[num]:
@@ -164,7 +269,12 @@ class Gamecalc():
                 return player_move
         return None
 
-    def player_next_to_move(self):
+    def player_next_to_move(self) -> int | None:
+        """Returns the "player_number" of the next player after the current one.
+
+        Returns:
+            "None" should in theory never be returned.
+        """
         # that way player next to move is always the one after player_to_move()
         _ = self.player_to_move()
         for num in range(self.player_num):
@@ -179,16 +289,25 @@ class Gamecalc():
         return None
 
     def increase_counter(self):
+        """Increases the "counter" which is used for determining the current and
+        next "player_number"."""
         # "aka next round/player"
         self._counter += 1
 
-    def set_state_for_undo(self):
+    def set_state_for_undo(self) -> None:
+        """Saves the current game state to be loaded when "undo" was pressed."""
         self.last_player_pos = copy.deepcopy(self.player_pos)
         self.last_player_alive = copy.deepcopy(self.player_alive)
         self._last_counter = copy.deepcopy(self._counter)
 
-    def undo(self, connections, round_num):
-        self.time_line[round_num] = None
+    def undo(self, connections: List[socket.socket], round_num: int) -> None:
+        """Loades and distributes the saved game state thereby undoing the last move.
+
+        Args:
+            connections: Sockets of connected clients.
+            round_num: Current round number.
+        """
+        self.time_line.pop(round_num)
         self.player_pos = copy.deepcopy(self.last_player_pos)
         self.player_alive = copy.deepcopy(self.last_player_alive)
         self._counter = copy.deepcopy(self._last_counter)

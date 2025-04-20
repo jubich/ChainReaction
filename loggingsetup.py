@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# Based on https://www.youtube.com/watch?v=9L77QExPmI0 from
-# https://www.youtube.com/@mCoding
+"""Deals with setting up the logger of client and server processes.
+
+Based on https://www.youtube.com/watch?v=9L77QExPmI0 from https://www.youtube.com/@mCoding
+"""
+
 
 from __future__ import annotations
 import os
@@ -49,6 +52,7 @@ CONFIG = {
       "formatter": "json",
       "filename": "logs/default.log.jsonl",
       "maxBytes": 10_000_000,
+      "encoding": "utf-8",
       "backupCount": 3
     }
   },
@@ -90,6 +94,7 @@ LOG_RECORD_BUILTIN_ATTRS = {
 
 
 class MyJSONFormatter(logging.Formatter):
+    """JSON Formatter used for the logger."""
     def __init__(self, *, fmt_keys: dict[str, str] | None = None,):
         super().__init__()
         self.fmt_keys = fmt_keys if fmt_keys is not None else {}
@@ -126,7 +131,15 @@ class MyJSONFormatter(logging.Formatter):
         return message
 
 
-def setup_logging(filename):
+def setup_logging(filename: str) -> logging.Logger:
+    """Creats a logger with output log files called "filename" in file "./logs/".
+
+    Args:
+        filename: Name of the log files.
+
+    Returns:
+        A configured logger.
+    """
     if not os.path.isdir("logs"):
         os.mkdir("logs")
     CONFIG["handlers"]["file"]["filename"] = os.path.join("logs", filename)
@@ -136,7 +149,15 @@ def setup_logging(filename):
     return logger
 
 
-def formatted_traceback(err):
+def formatted_traceback(err: Exception) -> str:
+    """Returns a "improved" traceback containing the local variables of the last two functions.
+
+    Args:
+        err: Raised exception containing the traceback information.
+
+    Returns:
+        Returns a "improved" traceback containing the local variables of the last two functions.
+    """
     frame = err.__traceback__
     formatted_tb_l = traceback.format_tb(frame)
     frame = frame.tb_next

@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+"""Deals with creation and loading of config files for client and server processes."""
+
+
+from __future__ import annotations
+from typing import Dict, Any, Callable
 import configparser
 import os
 import socket
@@ -48,7 +53,12 @@ SERVER = {"reaction_time_step": "0.5",
           "port": "5555"}
 
 
-def load_config():
+def load_config() -> configparser.ConfigParser:
+    """Creates and/or loads existing "chain_reaction.ini" config file.
+
+    Returns:
+        config: Returns the ConfigParser containing the loaded config file.
+    """
     config = configparser.ConfigParser()
     if not os.path.isfile('chain_reaction.ini'):
         config['DEFAULT'] = DEFAULTS
@@ -60,29 +70,71 @@ def load_config():
     return config
 
 
-def get_config(config, default, section, key):
-    # import ast
-    # ast.literal_eval()
+def get_config(config: configparser.ConfigParser, default: Dict[str, Any],
+               section: str, key: str) -> Any:
+    """Returns the value for "key" in "section" if present in loaded config else from
+    "default".
+
+    Args:
+        config: Contains the loaded config.
+        default: Contains the default values for "key" in "section".
+        section: Section containing the "key". Should be in capital letters.
+        key: "key" for value in "section".
+
+    Returns:
+        The value for "key" in "section" if present in "config". If not present then
+        the value will be loaded from "default".
+    """
     if section in config:
         return config[section].get(key, default[f"{section.lower()}.{key}"])
     return default[f"{section.lower()}.{key}"]
 
 
-def get_config_none(config, default, section, key, _type):
+def get_config_none(config: configparser.ConfigParser, default: Dict[str, Any],
+                    section: str, key: str, _type: Callable[Any, Any]) -> Any:
+    """Returns loaded value for "key" in "section" as type "_type" or "None" if "none" in "value.lower()".
+
+    Args:
+        config: Contains the loaded config.
+        default: Contains the default values for "key" in "section".
+        section: Section containing the "key". Should be in capital letters.
+        key: "key" for value in "section".
+        _type: "Constructors" like "int", "float", etc. corresponding to the expected
+          value.
+
+    Returns:
+        None if "value.lower()" containes "none". Otherwise the loaded value is
+        returned as the expected type given by "_type".
+    """
     value = get_config(config, default, section, key)
     if "none" in value.lower():
         return None
     return _type(value)
 
 
-def get_config_bool(config, default, section, key):
+def get_config_bool(config: configparser.ConfigParser, default: Dict[str, Any],
+                    section: str, key: str) -> bool:
+    """Returns loaded boolean for "key" in "section".
+
+    Args:
+        config: Contains the loaded config.
+        default: Contains the default values for "key" in "section".
+        section: Section containing the "key". Should be in capital letters.
+        key: "key" for value in "section".
+        _type: "Constructors" like "int", "float", etc. corresponding to the expected
+          value.
+
+    Returns:
+        Convertes loaded value in boolean.
+    """
     value = get_config(config, default, section, key)
     BOOLEAN_STATES = {'1': True, 'yes': True, 'true': True, 'on': True,
                       '0': False, 'no': False, 'false': False, 'off': False}
     return BOOLEAN_STATES[value.lower()]
 
 
-def load_config_c():
+def load_config_c() -> Dict[str, Any]:
+    """Loads the config necessary for the client process and checks for validity of loaded values."""
     config_dict = {}
     config = load_config()
     config_dict["fps_limit"] = int(get_config(config, DEFAULTS, "CLIENT", "fps_limit"))
@@ -96,14 +148,16 @@ def load_config_c():
     config_dict["nickname"] = get_config_none(config, DEFAULTS, "CLIENT", "nickname", str)
     if config_dict["nickname"] is not None:
         config_dict["nickname"].encode("utf-8", "strict")  # tests for valid uft-8 name
-    config_dict["ip"] = get_config_none(config, DEFAULTS, "CLIENT", "ip", str)
+    if config_dict["ip"] is not None:
+        config_dict["ip"] = get_config_none(config, DEFAULTS, "CLIENT", "ip", str)
     socket.inet_pton(socket.AF_INET, config_dict["ip"])  # tests for valid ip4
     config_dict["port"] = get_config_none(config, DEFAULTS, "CLIENT", "port", int)
     config_dict["be_player"] = get_config_bool(config, DEFAULTS, "CLIENT", "be_player")
     return config_dict
 
 
-def load_config_s():
+def load_config_s() -> Dict[str, Any]:
+    """Loads the config necessary for the server process and checks for validity of loaded values."""
     config_dict = {}
     config = load_config()
     config_dict["player_num"] = get_config_none(config, DEFAULTS, "SERVER", "player_number", int)

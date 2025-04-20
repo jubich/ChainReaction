@@ -1,13 +1,20 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# combins visual and sending-> player_class controlling
+"""Main file to start for a client process.
+
+To play the game a player/spectator needs to start a client process. This deals with the
+visualtisation of the game, the user inputs and the communication with the server.
+"""
 
 
+from __future__ import annotations
+from typing import Dict, Any, Tuple, List
 import sys
 import time
 import select
 import uuid
+import logging
 
 import numpy as np
 import pygame
@@ -19,8 +26,27 @@ from configfile import load_config_c
 from loggingsetup import setup_logging, formatted_traceback
 
 
-def game_loop(logger, session_uuid, client_uuid, network, config,
-              handshake_infos):
+def game_loop(logger: logging.Logger, session_uuid: str, client_uuid: str, network: Network_c,
+              config: Dict[str, Any], handshake_infos: Dict[str, Any]) -> Tuple[int, Dict[int, List[List[int]]]] | None:
+    """Starts a game.
+
+    Communicates to the server via sockets. Visualizes the game and gathers user inputs
+    to send to the server. Recieves game status from the server. Exits via
+    "sys.exit" if problem occurred.
+
+    Args:
+        logger: Logs the progress and state of the game/function.
+        session_uuid: Differentiates different games sessions in log-files.
+        client_uuid: Differentiates different clients in log-files.
+        network: Main class for dealing with sending and recieving of data via sockets.
+        config: Contains infos loaded from config files.
+        handshake_infos: Conatins infos from the handshake.
+
+    Returns
+        finish_message: Contains the "player_number" of the winner and a dictionary
+          with the information about the game evolution ("time line").
+          Is None if not recieved.
+    """
     finish_message = None
     player_pos = {}
     for num in range(handshake_infos["player_num"]):
@@ -144,7 +170,18 @@ def game_loop(logger, session_uuid, client_uuid, network, config,
     return finish_message
 
 
-def main(client_uuid, logger):
+def main(client_uuid: str, logger: logging.Logger) -> None:
+    """Gathers necessarry information for starting "game_loop".
+
+    Deals with loading the config file, getting user input. After that the
+    "restart-loop" is entered which deals with connecting to the server, the
+    handshake process, starting of the "game_loop" and dealing with the user
+    inputs after a game. Exits via "sys.exit" if problem occurred.
+
+    Args:
+        client_uuid: Differentiates different clients in log-files.
+        logger: Logs the progress and state of the game/function.
+    """
     # load config
     try:
         config = load_config_c()

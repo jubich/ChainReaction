@@ -1,13 +1,28 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+"""Tests Gamecalc."""
+
+from __future__ import annotations
+from typing import Dict
+
 import pytest
 import numpy as np
 
 from game_rules import Gamecalc
 
 
-def compare_positions(goal_pos, end_pos):
+def compare_positions(goal_pos: Dict[int, np.ndarray],
+                      end_pos: Dict[int, np.ndarray]) -> bool:
+    """Compares "goal_pos" with "end_pos".
+
+    Args:
+        goal_pos: Desired player positions ("player_pos").
+        end_pos: Calculated player positions ("player_pos").
+
+    Returns:
+        Waether or not both are the same.
+    """
     compare_arrays = [np.all(goal_pos[num] == end_pos[num])
                       for num in range(len(goal_pos))]
     return np.all(compare_arrays)
