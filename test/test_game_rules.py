@@ -21,7 +21,7 @@ def compare_positions(goal_pos: Dict[int, np.ndarray],
         end_pos: Calculated player positions ("player_pos").
 
     Returns:
-        Waether or not both are the same.
+        Wether or not both are the same.
     """
     compare_arrays = [np.all(goal_pos[num] == end_pos[num])
                       for num in range(len(goal_pos))]
