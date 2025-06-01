@@ -148,9 +148,9 @@ def load_config_c() -> Dict[str, Any]:
     config_dict["nickname"] = get_config_none(config, DEFAULTS, "CLIENT", "nickname", str)
     if config_dict["nickname"] is not None:
         config_dict["nickname"].encode("utf-8", "strict")  # tests for valid uft-8 name
+    config_dict["ip"] = get_config_none(config, DEFAULTS, "CLIENT", "ip", str)
     if config_dict["ip"] is not None:
-        config_dict["ip"] = get_config_none(config, DEFAULTS, "CLIENT", "ip", str)
-    socket.inet_pton(socket.AF_INET, config_dict["ip"])  # tests for valid ip4
+        socket.inet_pton(socket.AF_INET, config_dict["ip"])  # tests for valid ip4
     config_dict["port"] = get_config_none(config, DEFAULTS, "CLIENT", "port", int)
     config_dict["be_player"] = get_config_bool(config, DEFAULTS, "CLIENT", "be_player")
     return config_dict
@@ -165,5 +165,7 @@ def load_config_s() -> Dict[str, Any]:
     config_dict["height"] = get_config_none(config, DEFAULTS, "SERVER", "gameboard_height", int)
     config_dict["port"] = get_config_none(config, DEFAULTS, "SERVER", "port", int)
     config_dict["ip"] = get_config_none(config, DEFAULTS, "SERVER", "ip", str)
+    if config_dict["ip"] is not None:
+        socket.inet_pton(socket.AF_INET, config_dict["ip"])  # tests for valid ip4
     config_dict["reaction_time_step"] = float(get_config(config, DEFAULTS, "SERVER", "reaction_time_step"))
     return config_dict

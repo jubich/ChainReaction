@@ -19,15 +19,15 @@ import logging
 import numpy as np
 import pygame
 
-from network import Network_c
-from game import Gameboard
-from client_gui import client_gui, client_quit_gui, client_gui_restart
-from configfile import load_config_c
-from loggingsetup import setup_logging, formatted_traceback
+from chainreaction.network import Network_c
+from chainreaction.game import Gameboard
+from chainreaction.client_gui import client_gui, client_quit_gui, client_gui_restart
+from chainreaction.configfile import load_config_c
+from chainreaction.loggingsetup import setup_logging, formatted_traceback
 
 
-def game_loop(logger: logging.Logger, session_uuid: str, client_uuid: str, network: Network_c,
-              config: Dict[str, Any], handshake_infos: Dict[str, Any]) -> Tuple[int, Dict[int, List[List[int]]]] | None:
+def _game_loop(logger: logging.Logger, session_uuid: str, client_uuid: str, network: Network_c,
+               config: Dict[str, Any], handshake_infos: Dict[str, Any]) -> Tuple[int, Dict[int, List[List[int]]]] | None:
     """Starts a game.
 
     Communicates to the server via sockets. Visualizes the game and gathers user inputs
@@ -170,12 +170,12 @@ def game_loop(logger: logging.Logger, session_uuid: str, client_uuid: str, netwo
     return finish_message
 
 
-def main(client_uuid: str, logger: logging.Logger) -> None:
-    """Gathers necessarry information for starting "game_loop".
+def _main(client_uuid: str, logger: logging.Logger) -> None:
+    """Gathers necessarry information for starting "_game_loop".
 
     Deals with loading the config file, getting user input. After that the
     "restart-loop" is entered which deals with connecting to the server, the
-    handshake process, starting of the "game_loop" and dealing with the user
+    handshake process, starting of the "_game_loop" and dealing with the user
     inputs after a game. Exits via "sys.exit" if problem occurred.
 
     Args:
@@ -234,7 +234,7 @@ def main(client_uuid: str, logger: logging.Logger) -> None:
                                                "height_num": handshake_infos["height"]})
 
         # start game
-        finish_message = game_loop(logger, session_uuid, client_uuid, network,
+        finish_message = _game_loop(logger, session_uuid, client_uuid, network,
                                    config, handshake_infos)
 
         logger.debug("Game loop stopped!", extra={"client_uuid": client_uuid,
@@ -261,15 +261,20 @@ def main(client_uuid: str, logger: logging.Logger) -> None:
                                            "session_uuid": session_uuid})
 
 
-if __name__ == "__main__":
+def main():
+    """Starts a chainreaction client."""
     pygame.init()
     client_uuid = str(uuid.uuid4())  # to differentiate users
     logger = setup_logging("client.log.jsonl")
     logger.debug("New client started!", extra={"client_uuid": client_uuid})
     try:
-        main(client_uuid, logger)
+        _main(client_uuid, logger)
     except Exception as err:
         logger.critical("Unexpected Error!",
                         extra={"client_uuid": client_uuid,
                                "traceback": formatted_traceback(err)})
         time.sleep(2)
+
+
+if __name__ == "__main__":
+    main()

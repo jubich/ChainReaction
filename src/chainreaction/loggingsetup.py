@@ -26,7 +26,7 @@ CONFIG = {
       "datefmt": "%Y-%m-%dT%H:%M:%S%z"
     },
     "json": {
-      "()": "loggingsetup.MyJSONFormatter",
+      "()": "chainreaction.loggingsetup.MyJSONFormatter",
       "fmt_keys": {
         "level": "levelname",
         "message": "message",

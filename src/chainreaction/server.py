@@ -17,16 +17,16 @@ import select
 import uuid
 import logging
 
-from network import Network_s
-from game_rules import Gamecalc
-from server_gui import server_gui, server_gui_restart
-from configfile import load_config_s
-from loggingsetup import setup_logging, formatted_traceback
+from chainreaction.network import Network_s
+from chainreaction.game_rules import Gamecalc
+from chainreaction.server_gui import server_gui, server_gui_restart
+from chainreaction.configfile import load_config_s
+from chainreaction.loggingsetup import setup_logging, formatted_traceback
 
 
-def game_loop(logger: logging.Logger, session_uuid: str, conn_uuid: Dict[socket.socket, str],
-              server: Network_s, game: Gamecalc, player: Dict[socket.socket, int], nicknames: Dict[int, str],
-              handshake_dict: Dict[str, Any]) -> None:
+def _game_loop(logger: logging.Logger, session_uuid: str, conn_uuid: Dict[socket.socket, str],
+               server: Network_s, game: Gamecalc, player: Dict[socket.socket, int], nicknames: Dict[int, str],
+               handshake_dict: Dict[str, Any]) -> None:
     """Starts a game.
 
     Recieves inputs from players and spectators via sockets. Calulates new game starte
@@ -167,12 +167,12 @@ def game_loop(logger: logging.Logger, session_uuid: str, conn_uuid: Dict[socket.
             run = False
 
 
-def main(session_uuid: str, logger: logging.Logger) -> None:
-    """Gathers necessarry information for starting "game_loop".
+def _main(session_uuid: str, logger: logging.Logger) -> None:
+    """Gathers necessarry information for starting "_game_loop".
 
     Deals with loading the config file, getting user input and binding the ip.
     After that the "restart-loop" is entered which deals with the handshake process,
-    starting of the "game_loop" and dealing with the user inputs after a game.
+    starting of the "_game_loop" and dealing with the user inputs after a game.
     Exits via "sys.exit" if problem occurred.
 
     Args:
@@ -228,7 +228,7 @@ def main(session_uuid: str, logger: logging.Logger) -> None:
                         s_inputs["height"], config["reaction_time_step"],
                         server, logger, session_uuid)
 
-        game_loop(logger, session_uuid, conn_uuid, server, game, player,
+        _game_loop(logger, session_uuid, conn_uuid, server, game, player,
                   nicknames, handshake_dict)
 
         logger.debug("Game loop stopped!", extra={"session_uuid": session_uuid})
@@ -249,14 +249,19 @@ def main(session_uuid: str, logger: logging.Logger) -> None:
     logger.debug("Server stopped!", extra={"session_uuid": session_uuid})
 
 
-if __name__ == "__main__":
+def main():
+    """Starts a chainreaction server."""
     session_uuid = str(uuid.uuid4())  # to differentiate sessions
     logger = setup_logging("server.log.jsonl")
     logger.debug("New session started!", extra={"session_uuid": session_uuid})
     try:
-        main(session_uuid, logger)
+        _main(session_uuid, logger)
     except Exception as err:
         logger.critical("Unexpected Error!",
                         extra={"session_uuid": session_uuid,
                                "traceback": formatted_traceback(err)})
         time.sleep(2)
+
+
+if __name__ == "__main__":
+    main()

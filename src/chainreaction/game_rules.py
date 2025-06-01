@@ -13,7 +13,7 @@ import socket
 
 import numpy as np
 
-from network import Network_s
+from chainreaction.network import Network_s
 
 
 class Gamecalc():

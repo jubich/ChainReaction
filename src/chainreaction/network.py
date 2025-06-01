@@ -14,7 +14,7 @@ import select
 import random
 import logging
 
-from loggingsetup import formatted_traceback
+from chainreaction.loggingsetup import formatted_traceback
 
 HEADERSIZE = 20
 

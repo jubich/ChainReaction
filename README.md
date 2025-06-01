@@ -36,27 +36,22 @@ You will also find some information about the configuration file and the log fil
 
 ## Installation
 
-This game is written in Python (3.8.10) and requires the following third-party packages:<br/>
-`pygame, numpy, tkinter, matplotlib (and pytest)`<br/>
-which can be installed with pip as follows:<br/>
-`pip install pygame numpy tk matplotlib`
+This game is written in Python and can be installed using:<br/>
+`pip install .`<br/>
+The client and server can then be startet using `chainreaction-client` and `chainreaction-server` respectively.
 
-It is recommended to convert the .py files into executable .exe files, which allows for
-easier distribution as these executable files are self-contained, i.e. do not require a
-Python installation. The executable files can be created e.g. with
-[PyInstaller](https://pyinstaller.org/en/stable/). PyInstaller can be install using:<br/>
+It is recommended to convert the .py files into self-contained executable .exe files, which allows for
+easier distribution as these executable files do not require a Python installation. Such executable files can be 
+created e.g. with [PyInstaller](https://pyinstaller.org/en/stable/). PyInstaller can be install using:<br/>
 `pip install pyinstaller` <br/>
-After installing the required Python packages and PyInstaller, the two executable files
+After installing chainreaction and PyInstaller, the two executable files
 can be created as follows:<br/>
-`pyinstaller --onefile client.py` <br/>
-`pyinstaller --onefile server.py` <br/>
+`pyinstaller --onefile src/chainreaction/client.py` <br/>
+`pyinstaller --onefile src/chainreaction/server.py` <br/>
 The executable files are located in the created "dist" folder.
 > [!NOTE]
 > Running these files can/will cause Windows Defender to issue a warning due to missing
 > certificates and the way PyInstaller (and other such packagers) create the executables.
-
-Alternatively, the client.py and server.py files can also be executed directly with an
-existing Python installation.
 
 ## How to start
 
@@ -164,13 +159,34 @@ information to fix the problem. Please make sure that you can send the logs on r
 
 
 # Further resources
-
-This section contains some additional resources and all the links mentioned above.
+## Links mentioned above
 - Original Chain Reaction by Buddy-Matt Entertainment for android: https://play.google.com/store/apps/details?id=com.BuddyMattEnt.ChainReaction&amp;hl=en
 - Game rules and additional informations provided by brilliant.org: https://brilliant.org/wiki/chain-reaction-game/
-- ChainReactionAI written in Python: https://github.com/Agnishom/ChainReactionAI
-- Chain Reaction game created using HTML & Javascript: https://github.com/nitish712/Chain-Reaction
-- Chain Reaction game created in Java using Swing and AWT: https://github.com/realspal/ChainReaction
 - PyInstaller Manual: https://pyinstaller.org/en/stable/
 - RadminVPN: https://www.radmin-vpn.com/
 - Hamachi by LogMeIn: https://vpn.net/
+
+## Other implementations
+### JavaScript
+- https://github.com/nitish712/Chain-Reaction
+- https://github.com/rohittir/chain-reaction
+- https://github.com/RahulSundkar/ChainReaction
+- https://github.com/anshikakaythwas/Chain-Reaction
+- https://github.com/1Rayquaza/Chain-Reaction
+- https://github.com/shrabana99/Chain-Reaction
+- https://github.com/RtiM0/chainreaction
+- https://github.com/nitish712/Chain-Reaction
+### Python
+- https://github.com/Agnishom/ChainReactionAI
+- https://github.com/notshridhar/chain-reaction-ai
+- https://github.com/jatinmandav/Gaming-in-Python
+- https://github.com/MrArgho/chain-reaction-game
+- https://github.com/youben11/chain-reaction
+- https://github.com/gajjarjigar/ChainReaction
+### Java
+- https://github.com/realspal/ChainReaction
+- https://github.com/shagunuppal/Chain-Reaction-Java
+### C++
+- https://github.com/urvi367/Chain-Reaction
+### TypeScript
+- https://github.com/keshavlingala/ChainReactionMinMax
